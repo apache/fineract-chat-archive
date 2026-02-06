@@ -20,6 +20,7 @@ package org.apache.fineract.chat.archive;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -75,6 +76,39 @@ public final class ChatArchiveApp {
         }
 
         LOG.info("Slack auth.test succeeded for team " + authResponse.team() + ".");
+
+        SlackApiClient.ConversationsListResponse channelsResponse;
+        try {
+            channelsResponse = slackApiClient.listPublicChannels(slackToken.get());
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "Slack conversations.list call failed.", ex);
+            return;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            LOG.log(Level.SEVERE, "Slack conversations.list call interrupted.", ex);
+            return;
+        }
+
+        if (!channelsResponse.ok()) {
+            LOG.warning("Slack conversations.list failed: " + channelsResponse.error());
+            return;
+        }
+
+        List<SlackApiClient.SlackChannel> channels = channelsResponse.channels();
+        ChannelResolver.ChannelResolution resolution = ChannelResolver.resolve(
+                archiveConfig.channelAllowlist(), channels);
+
+        if (!resolution.missing().isEmpty()) {
+            LOG.warning("Allowlisted channel(s) not found: "
+                    + String.join(", ", resolution.missing()));
+        }
+
+        if (resolution.resolved().isEmpty()) {
+            LOG.warning("No allowlisted channels resolved. Skipping archive update.");
+            return;
+        }
+
+        LOG.info("Resolved " + resolution.resolved().size() + " channel(s).");
     }
 
     static Optional<String> readEnv(String name) {
