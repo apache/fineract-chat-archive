@@ -23,6 +23,14 @@ Output:
 Environment:
 - `SLACK_TOKEN` (Slack Bot token)
 
+Required Slack scopes:
+- `channels:read` (list public channels)
+- `channels:history` (read public channel history)
+- `chat:write` (resolve permalinks)
+
+GitHub Pages:
+- The `docs/` directory is intended for publishing via GitHub Pages.
+
 ## Automation
 
 GitHub Actions can run the archive update daily and commit new output.
