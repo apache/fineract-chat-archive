@@ -31,13 +31,21 @@ final class ArchiveConfig {
 
     static final String CHANNELS_ALLOWLIST_KEY = "channels.allowlist";
     static final String OUTPUT_DIR_KEY = "output.dir";
+    static final String STATE_DIR_KEY = "state.dir";
+    static final String LOOKBACK_DAYS_KEY = "fetch.lookback.days";
+    static final int DEFAULT_LOOKBACK_DAYS = 1;
 
     private final List<String> channelAllowlist;
     private final Path outputDir;
+    private final Path stateDir;
+    private final int lookbackDays;
 
-    private ArchiveConfig(List<String> channelAllowlist, Path outputDir) {
+    private ArchiveConfig(List<String> channelAllowlist, Path outputDir, Path stateDir,
+            int lookbackDays) {
         this.channelAllowlist = List.copyOf(channelAllowlist);
         this.outputDir = outputDir;
+        this.stateDir = stateDir;
+        this.lookbackDays = lookbackDays;
     }
 
     static Optional<ArchiveConfig> load(Path configPath) throws IOException {
@@ -58,7 +66,10 @@ final class ArchiveConfig {
 
         String outputDirValue = properties.getProperty(OUTPUT_DIR_KEY, "docs").trim();
         Path outputDir = Path.of(outputDirValue);
-        return Optional.of(new ArchiveConfig(channels, outputDir));
+        String stateDirValue = properties.getProperty(STATE_DIR_KEY, "state").trim();
+        Path stateDir = Path.of(stateDirValue);
+        int lookbackDays = parseLookbackDays(properties.getProperty(LOOKBACK_DAYS_KEY));
+        return Optional.of(new ArchiveConfig(channels, outputDir, stateDir, lookbackDays));
     }
 
     List<String> channelAllowlist() {
@@ -67,6 +78,14 @@ final class ArchiveConfig {
 
     Path outputDir() {
         return outputDir;
+    }
+
+    Path stateDir() {
+        return stateDir;
+    }
+
+    int lookbackDays() {
+        return lookbackDays;
     }
 
     private static List<String> parseAllowlist(String value) {
@@ -87,6 +106,18 @@ final class ArchiveConfig {
             return value.substring(1).trim();
         }
         return value;
+    }
+
+    private static int parseLookbackDays(String value) {
+        if (value == null || value.isBlank()) {
+            return DEFAULT_LOOKBACK_DAYS;
+        }
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            return parsed > 0 ? parsed : DEFAULT_LOOKBACK_DAYS;
+        } catch (NumberFormatException ex) {
+            return DEFAULT_LOOKBACK_DAYS;
+        }
     }
 }
 
