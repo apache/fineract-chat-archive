@@ -22,3 +22,10 @@ Output:
 
 Environment:
 - `SLACK_TOKEN` (Slack Bot token)
+
+## Automation
+
+GitHub Actions can run the archive update daily and commit new output.
+
+Setup:
+- Add repository secret `SLACK_TOKEN`
