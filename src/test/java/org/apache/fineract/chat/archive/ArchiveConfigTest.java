@@ -35,6 +35,8 @@ class ArchiveConfigTest {
         String content = String.join("\n",
                 "channels.allowlist=#fineract, dev",
                 "output.dir=docs",
+                "state.dir=state",
+                "fetch.lookback.days=3",
                 "");
         Files.writeString(tempFile, content, StandardCharsets.UTF_8);
 
@@ -45,6 +47,8 @@ class ArchiveConfigTest {
         assertEquals("fineract", config.get().channelAllowlist().get(0));
         assertEquals("dev", config.get().channelAllowlist().get(1));
         assertEquals(Path.of("docs"), config.get().outputDir());
+        assertEquals(Path.of("state"), config.get().stateDir());
+        assertEquals(3, config.get().lookbackDays());
     }
 
     @Test
@@ -69,6 +73,21 @@ class ArchiveConfigTest {
         Optional<ArchiveConfig> config = ArchiveConfig.load(tempFile);
 
         assertTrue(config.isEmpty());
+    }
+
+    @Test
+    void loadUsesDefaultLookbackDaysWhenInvalid() throws Exception {
+        Path tempFile = Files.createTempFile("archive-invalid", ".properties");
+        String content = String.join("\n",
+                "channels.allowlist=#fineract",
+                "fetch.lookback.days=0",
+                "");
+        Files.writeString(tempFile, content, StandardCharsets.UTF_8);
+
+        Optional<ArchiveConfig> config = ArchiveConfig.load(tempFile);
+
+        assertTrue(config.isPresent());
+        assertEquals(ArchiveConfig.DEFAULT_LOOKBACK_DAYS, config.get().lookbackDays());
     }
 }
 

@@ -36,9 +36,13 @@ final class SlackApiClient {
 
     private static final URI AUTH_TEST_URI = URI.create("https://slack.com/api/auth.test");
     private static final String CONVERSATIONS_LIST_URL = "https://slack.com/api/conversations.list";
+    private static final String CONVERSATIONS_HISTORY_URL =
+            "https://slack.com/api/conversations.history";
+    private static final String CHAT_PERMALINK_URL = "https://slack.com/api/chat.getPermalink";
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(20);
     private static final int CONVERSATIONS_PAGE_SIZE = 200;
+    private static final int HISTORY_PAGE_SIZE = 200;
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -98,6 +102,57 @@ final class SlackApiClient {
         return new ConversationsListResponse(true, null, List.copyOf(channels), null);
     }
 
+    ConversationsHistoryResponse listChannelMessages(String token, String channelId,
+            String oldestTs) throws IOException, InterruptedException {
+        List<SlackMessage> messages = new ArrayList<>();
+        String cursor = null;
+
+        do {
+            URI uri = buildConversationsHistoryUri(channelId, oldestTs, cursor);
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                    .timeout(REQUEST_TIMEOUT)
+                    .header("Authorization", "Bearer " + token)
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request,
+                    HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                return ConversationsHistoryResponse.httpError(response.statusCode());
+            }
+
+            ConversationsHistoryResponse payload = objectMapper.readValue(response.body(),
+                    ConversationsHistoryResponse.class);
+            if (!payload.ok()) {
+                return new ConversationsHistoryResponse(false, payload.error(), List.of(), null);
+            }
+
+            if (payload.messages() != null) {
+                messages.addAll(payload.messages());
+            }
+            cursor = payload.nextCursor();
+        } while (cursor != null && !cursor.isBlank());
+
+        return new ConversationsHistoryResponse(true, null, List.copyOf(messages), null);
+    }
+
+    PermalinkResponse getPermalink(String token, String channelId, String messageTs)
+            throws IOException, InterruptedException {
+        URI uri = buildPermalinkUri(channelId, messageTs);
+        HttpRequest request = HttpRequest.newBuilder(uri)
+                .timeout(REQUEST_TIMEOUT)
+                .header("Authorization", "Bearer " + token)
+                .GET()
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request,
+                HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 200) {
+            return PermalinkResponse.httpError(response.statusCode());
+        }
+        return objectMapper.readValue(response.body(), PermalinkResponse.class);
+    }
+
     private static URI buildConversationsListUri(String cursor) {
         StringBuilder query = new StringBuilder();
         query.append("limit=").append(CONVERSATIONS_PAGE_SIZE);
@@ -108,6 +163,33 @@ final class SlackApiClient {
                     .append(URLEncoder.encode(cursor, StandardCharsets.UTF_8));
         }
         return URI.create(CONVERSATIONS_LIST_URL + "?" + query);
+    }
+
+    private static URI buildConversationsHistoryUri(String channelId, String oldestTs,
+            String cursor) {
+        StringBuilder query = new StringBuilder();
+        query.append("channel=")
+                .append(URLEncoder.encode(channelId, StandardCharsets.UTF_8));
+        query.append("&limit=").append(HISTORY_PAGE_SIZE);
+        query.append("&inclusive=true");
+        if (oldestTs != null && !oldestTs.isBlank()) {
+            query.append("&oldest=")
+                    .append(URLEncoder.encode(oldestTs, StandardCharsets.UTF_8));
+        }
+        if (cursor != null && !cursor.isBlank()) {
+            query.append("&cursor=")
+                    .append(URLEncoder.encode(cursor, StandardCharsets.UTF_8));
+        }
+        return URI.create(CONVERSATIONS_HISTORY_URL + "?" + query);
+    }
+
+    private static URI buildPermalinkUri(String channelId, String messageTs) {
+        StringBuilder query = new StringBuilder();
+        query.append("channel=")
+                .append(URLEncoder.encode(channelId, StandardCharsets.UTF_8));
+        query.append("&message_ts=")
+                .append(URLEncoder.encode(messageTs, StandardCharsets.UTF_8));
+        return URI.create(CHAT_PERMALINK_URL + "?" + query);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -139,6 +221,29 @@ final class SlackApiClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record SlackChannel(String id, String name) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record ConversationsHistoryResponse(boolean ok, String error, List<SlackMessage> messages,
+            @JsonProperty("response_metadata") ResponseMetadata responseMetadata) {
+        static ConversationsHistoryResponse httpError(int statusCode) {
+            return new ConversationsHistoryResponse(false, "http_status_" + statusCode, List.of(),
+                    null);
+        }
+
+        String nextCursor() {
+            if (responseMetadata == null) {
+                return null;
+            }
+            return responseMetadata.nextCursor();
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record PermalinkResponse(boolean ok, String error, String permalink) {
+        static PermalinkResponse httpError(int statusCode) {
+            return new PermalinkResponse(false, "http_status_" + statusCode, null);
+        }
     }
 }
 
