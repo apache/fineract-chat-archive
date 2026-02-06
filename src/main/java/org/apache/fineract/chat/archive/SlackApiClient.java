@@ -39,7 +39,10 @@ final class SlackApiClient {
     private static final String CONVERSATIONS_LIST_URL = "https://slack.com/api/conversations.list";
     private static final String CONVERSATIONS_HISTORY_URL =
             "https://slack.com/api/conversations.history";
+    private static final String CONVERSATIONS_REPLIES_URL =
+            "https://slack.com/api/conversations.replies";
     private static final String CHAT_PERMALINK_URL = "https://slack.com/api/chat.getPermalink";
+    private static final String USERS_INFO_URL = "https://slack.com/api/users.info";
     private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(20);
     private static final int CONVERSATIONS_PAGE_SIZE = 200;
@@ -134,6 +137,39 @@ final class SlackApiClient {
         return new ConversationsHistoryResponse(true, null, List.copyOf(messages), null);
     }
 
+    ConversationsRepliesResponse listThreadReplies(String token, String channelId, String threadTs)
+            throws IOException, InterruptedException {
+        List<SlackMessage> messages = new ArrayList<>();
+        String cursor = null;
+
+        do {
+            URI uri = buildConversationsRepliesUri(channelId, threadTs, cursor);
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                    .timeout(REQUEST_TIMEOUT)
+                    .header("Authorization", "Bearer " + token)
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = sendWithRetry(request);
+            if (response.statusCode() != 200) {
+                return ConversationsRepliesResponse.httpError(response.statusCode());
+            }
+
+            ConversationsRepliesResponse payload = objectMapper.readValue(response.body(),
+                    ConversationsRepliesResponse.class);
+            if (!payload.ok()) {
+                return new ConversationsRepliesResponse(false, payload.error(), List.of(), null);
+            }
+
+            if (payload.messages() != null) {
+                messages.addAll(payload.messages());
+            }
+            cursor = payload.nextCursor();
+        } while (cursor != null && !cursor.isBlank());
+
+        return new ConversationsRepliesResponse(true, null, List.copyOf(messages), null);
+    }
+
     PermalinkResponse getPermalink(String token, String channelId, String messageTs)
             throws IOException, InterruptedException {
         URI uri = buildPermalinkUri(channelId, messageTs);
@@ -148,6 +184,22 @@ final class SlackApiClient {
             return PermalinkResponse.httpError(response.statusCode());
         }
         return objectMapper.readValue(response.body(), PermalinkResponse.class);
+    }
+
+    UserInfoResponse getUserInfo(String token, String userId)
+            throws IOException, InterruptedException {
+        URI uri = buildUsersInfoUri(userId);
+        HttpRequest request = HttpRequest.newBuilder(uri)
+                .timeout(REQUEST_TIMEOUT)
+                .header("Authorization", "Bearer " + token)
+                .GET()
+                .build();
+
+        HttpResponse<String> response = sendWithRetry(request);
+        if (response.statusCode() != 200) {
+            return UserInfoResponse.httpError(response.statusCode());
+        }
+        return objectMapper.readValue(response.body(), UserInfoResponse.class);
     }
 
     private HttpResponse<String> sendWithRetry(HttpRequest request)
@@ -217,6 +269,27 @@ final class SlackApiClient {
         return URI.create(CHAT_PERMALINK_URL + "?" + query);
     }
 
+    private static URI buildUsersInfoUri(String userId) {
+        StringBuilder query = new StringBuilder();
+        query.append("user=").append(URLEncoder.encode(userId, StandardCharsets.UTF_8));
+        return URI.create(USERS_INFO_URL + "?" + query);
+    }
+
+    private static URI buildConversationsRepliesUri(String channelId, String threadTs,
+            String cursor) {
+        StringBuilder query = new StringBuilder();
+        query.append("channel=")
+                .append(URLEncoder.encode(channelId, StandardCharsets.UTF_8));
+        query.append("&ts=")
+                .append(URLEncoder.encode(threadTs, StandardCharsets.UTF_8));
+        query.append("&limit=").append(HISTORY_PAGE_SIZE);
+        if (cursor != null && !cursor.isBlank()) {
+            query.append("&cursor=")
+                    .append(URLEncoder.encode(cursor, StandardCharsets.UTF_8));
+        }
+        return URI.create(CONVERSATIONS_REPLIES_URL + "?" + query);
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     record AuthTestResponse(boolean ok, String error, String team, String user) {
         static AuthTestResponse httpError(int statusCode) {
@@ -265,10 +338,42 @@ final class SlackApiClient {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
+    record ConversationsRepliesResponse(boolean ok, String error, List<SlackMessage> messages,
+            @JsonProperty("response_metadata") ResponseMetadata responseMetadata) {
+        static ConversationsRepliesResponse httpError(int statusCode) {
+            return new ConversationsRepliesResponse(false, "http_status_" + statusCode, List.of(),
+                    null);
+        }
+
+        String nextCursor() {
+            if (responseMetadata == null) {
+                return null;
+            }
+            return responseMetadata.nextCursor();
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     record PermalinkResponse(boolean ok, String error, String permalink) {
         static PermalinkResponse httpError(int statusCode) {
             return new PermalinkResponse(false, "http_status_" + statusCode, null);
         }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record UserInfoResponse(boolean ok, String error, SlackUser user) {
+        static UserInfoResponse httpError(int statusCode) {
+            return new UserInfoResponse(false, "http_status_" + statusCode, null);
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record SlackUser(String id, String name, SlackProfile profile) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record SlackProfile(@JsonProperty("display_name") String displayName,
+            @JsonProperty("real_name") String realName) {
     }
 }
 
