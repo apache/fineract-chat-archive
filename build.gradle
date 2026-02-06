@@ -1,0 +1,23 @@
+﻿plugins {
+    id 'java'
+}
+
+group = 'org.apache.fineract'
+version = '0.1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.register('updateChatArchive', JavaExec) {
+    group = 'application'
+    description = 'Fetch Slack messages and update the static archive.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('org.apache.fineract.chat.archive.ChatArchiveApp')
+}
