@@ -27,12 +27,23 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.fineract.chat.archive.model.SlackMessage;
+import org.apache.fineract.chat.archive.model.SlackTimestamp;
+import org.apache.fineract.chat.archive.render.FileWriterUtil;
+import org.apache.fineract.chat.archive.render.IndexRenderer;
+import org.apache.fineract.chat.archive.render.MarkdownRenderer;
+import org.apache.fineract.chat.archive.slack.ChannelResolver;
+import org.apache.fineract.chat.archive.slack.SlackApiClient;
+import org.apache.fineract.chat.archive.slack.UserDisplayNameResolver;
+import org.apache.fineract.chat.archive.store.CursorStore;
 
 public final class ChatArchiveApp {
 
@@ -132,6 +143,8 @@ public final class ChatArchiveApp {
 
         Path dailyRoot = archiveConfig.outputDir().resolve("daily");
         Map<String, String> permalinkCache = new HashMap<>();
+        Map<String, String> userCache = new HashMap<>();
+        Map<String, List<SlackMessage>> threadRepliesCache = new HashMap<>();
         boolean anyRendered = false;
 
         for (SlackApiClient.SlackChannel channel : resolution.resolved()) {
@@ -170,7 +183,8 @@ public final class ChatArchiveApp {
             for (Map.Entry<LocalDate, List<SlackMessage>> entry : grouped.entrySet()) {
                 LocalDate date = entry.getKey();
                 List<MarkdownRenderer.Row> rows = toRows(entry.getValue(), channelId,
-                        slackToken.get(), slackApiClient, permalinkCache);
+                        slackToken.get(), slackApiClient, permalinkCache, userCache,
+                        threadRepliesCache);
                 String page = MarkdownRenderer.renderDailyPage(channel.name(), date, rows);
                 Path pagePath = dailyRoot.resolve(channel.name()).resolve(date + ".md");
                 try {
@@ -250,8 +264,20 @@ public final class ChatArchiveApp {
 
     private static Map<LocalDate, List<SlackMessage>> groupByDate(List<SlackMessage> messages) {
         Map<LocalDate, List<SlackMessage>> grouped = new TreeMap<>();
+        Set<String> parentSet = new HashSet<>();
         for (SlackMessage message : messages) {
             if (message.ts() == null) {
+                continue;
+            }
+            if (message.threadTs() == null || message.threadTs().equals(message.ts())) {
+                parentSet.add(message.ts());
+            }
+        }
+        for (SlackMessage message : messages) {
+            if (message.ts() == null) {
+                continue;
+            }
+            if (isReply(message) && parentSet.contains(message.threadTs())) {
                 continue;
             }
             Instant instant = SlackTimestamp.toInstant(message.ts());
@@ -262,28 +288,169 @@ public final class ChatArchiveApp {
     }
 
     private static List<MarkdownRenderer.Row> toRows(List<SlackMessage> messages, String channelId,
-            String token, SlackApiClient slackApiClient, Map<String, String> permalinkCache) {
+            String token, SlackApiClient slackApiClient, Map<String, String> permalinkCache,
+            Map<String, String> userCache, Map<String, List<SlackMessage>> threadRepliesCache) {
         List<MarkdownRenderer.Row> rows = new ArrayList<>();
+        Map<String, List<SlackMessage>> repliesByParent = collectReplies(messages);
+        Set<String> parentSet = collectParentIds(messages);
         for (SlackMessage message : messages) {
-            Instant instant = SlackTimestamp.toInstant(message.ts());
-            String time = TIME_FORMATTER.format(instant.atZone(ZoneOffset.UTC));
-            String user = resolveUser(message);
-            String text = message.text() == null ? "" : message.text();
-            String permalink = resolvePermalink(channelId, message.ts(), token, slackApiClient,
-                    permalinkCache);
-            rows.add(new MarkdownRenderer.Row(time, user, text, permalink));
+            if (message.ts() == null) {
+                continue;
+            }
+            if (isReply(message)) {
+                if (parentSet.contains(message.threadTs())) {
+                    continue;
+                }
+                rows.add(toRow(message, channelId, token, slackApiClient, permalinkCache,
+                        userCache, "-> "));
+                continue;
+            }
+            rows.add(toRow(message, channelId, token, slackApiClient, permalinkCache, userCache,
+                    ""));
+            if (message.threadTs() != null && message.threadTs().equals(message.ts())) {
+                List<SlackMessage> replies = resolveThreadReplies(channelId, message.threadTs(),
+                        repliesByParent, threadRepliesCache, slackApiClient, token);
+                for (SlackMessage reply : replies) {
+                    rows.add(toRow(reply, channelId, token, slackApiClient, permalinkCache,
+                            userCache, "-> "));
+                }
+            }
         }
         return rows;
     }
 
-    private static String resolveUser(SlackMessage message) {
+    private static MarkdownRenderer.Row toRow(SlackMessage message, String channelId, String token,
+            SlackApiClient slackApiClient, Map<String, String> permalinkCache,
+            Map<String, String> userCache, String prefix) {
+        Instant instant = SlackTimestamp.toInstant(message.ts());
+        String time = TIME_FORMATTER.format(instant.atZone(ZoneOffset.UTC));
+        String user = resolveUser(message, token, slackApiClient, userCache);
+        String text = message.text() == null ? "" : message.text();
+        String permalink = resolvePermalink(channelId, message.ts(), token, slackApiClient,
+                permalinkCache);
+        return new MarkdownRenderer.Row(time, user, prefix + text, permalink);
+    }
+
+    private static boolean isReply(SlackMessage message) {
+        return message.threadTs() != null && !message.threadTs().equals(message.ts());
+    }
+
+    private static Set<String> collectParentIds(List<SlackMessage> messages) {
+        Set<String> parentSet = new HashSet<>();
+        for (SlackMessage message : messages) {
+            if (message.ts() == null) {
+                continue;
+            }
+            if (message.threadTs() == null || message.threadTs().equals(message.ts())) {
+                parentSet.add(message.ts());
+            }
+        }
+        return parentSet;
+    }
+
+    private static Map<String, List<SlackMessage>> collectReplies(List<SlackMessage> messages) {
+        Map<String, List<SlackMessage>> repliesByParent = new HashMap<>();
+        for (SlackMessage message : messages) {
+            if (message.ts() == null || message.threadTs() == null
+                    || message.threadTs().equals(message.ts())) {
+                continue;
+            }
+            repliesByParent.computeIfAbsent(message.threadTs(), key -> new ArrayList<>())
+                    .add(message);
+        }
+        return repliesByParent;
+    }
+
+    private static List<SlackMessage> resolveThreadReplies(String channelId, String threadTs,
+            Map<String, List<SlackMessage>> repliesByParent,
+            Map<String, List<SlackMessage>> repliesCache, SlackApiClient slackApiClient,
+            String token) {
+        if (repliesCache.containsKey(threadTs)) {
+            return repliesCache.get(threadTs);
+        }
+
+        List<SlackMessage> replies = new ArrayList<>(repliesByParent.getOrDefault(threadTs,
+                List.of()));
+        Set<String> replyIds = new HashSet<>();
+        for (SlackMessage message : replies) {
+            if (message.ts() != null) {
+                replyIds.add(message.ts());
+            }
+        }
+
+        SlackApiClient.ConversationsRepliesResponse response;
+        try {
+            response = slackApiClient.listThreadReplies(token, channelId, threadTs);
+        } catch (IOException ex) {
+            LOG.log(Level.WARNING, "Slack conversations.replies call failed.", ex);
+            repliesCache.put(threadTs, List.copyOf(replies));
+            return replies;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            LOG.log(Level.WARNING, "Slack conversations.replies call interrupted.", ex);
+            repliesCache.put(threadTs, List.copyOf(replies));
+            return replies;
+        }
+
+        if (!response.ok()) {
+            LOG.warning("Slack conversations.replies failed: " + response.error());
+            repliesCache.put(threadTs, List.copyOf(replies));
+            return replies;
+        }
+
+        for (SlackMessage message : response.messages()) {
+            if (message.ts() == null || message.ts().equals(threadTs)) {
+                continue;
+            }
+            if (replyIds.add(message.ts())) {
+                replies.add(message);
+            }
+        }
+        replies.sort((left, right) -> SlackTimestamp.compare(left.ts(), right.ts()));
+        List<SlackMessage> merged = List.copyOf(replies);
+        repliesCache.put(threadTs, merged);
+        return merged;
+    }
+
+    private static String resolveUser(SlackMessage message, String token,
+            SlackApiClient slackApiClient, Map<String, String> userCache) {
         if (message.user() != null && !message.user().isBlank()) {
-            return message.user();
+            return resolveUserDisplayName(message.user(), token, slackApiClient, userCache);
         }
         if (message.botId() != null && !message.botId().isBlank()) {
-            return message.botId();
+            return "bot:" + message.botId();
         }
         return "unknown";
+    }
+
+    private static String resolveUserDisplayName(String userId, String token,
+            SlackApiClient slackApiClient, Map<String, String> userCache) {
+        if (userCache.containsKey(userId)) {
+            return userCache.get(userId);
+        }
+        SlackApiClient.UserInfoResponse response;
+        try {
+            response = slackApiClient.getUserInfo(token, userId);
+        } catch (IOException ex) {
+            LOG.log(Level.WARNING, "Slack users.info call failed.", ex);
+            userCache.put(userId, userId);
+            return userId;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            LOG.log(Level.WARNING, "Slack users.info call interrupted.", ex);
+            userCache.put(userId, userId);
+            return userId;
+        }
+
+        if (!response.ok() || response.user() == null) {
+            String fallback = userId;
+            userCache.put(userId, fallback);
+            return fallback;
+        }
+
+        String displayName = UserDisplayNameResolver.resolve(response.user());
+        userCache.put(userId, displayName);
+        return displayName;
     }
 
     private static String resolvePermalink(String channelId, String messageTs, String token,

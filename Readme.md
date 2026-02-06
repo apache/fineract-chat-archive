@@ -27,6 +27,7 @@ Required Slack scopes:
 - `channels:read` (list public channels)
 - `channels:history` (read public channel history)
 - `chat:write` (resolve permalinks)
+- `users:read` (resolve user display names)
 
 GitHub Pages:
 - The `docs/` directory is intended for publishing via GitHub Pages.
