@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id 'java'
 }
 
@@ -13,6 +13,18 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
+}
+
+dependencies {
+    implementation platform('com.fasterxml.jackson:jackson-bom:2.19.2')
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    testImplementation platform('org.junit:junit-bom:5.11.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
 
 tasks.register('updateChatArchive', JavaExec) {

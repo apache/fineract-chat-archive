@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -18,7 +18,10 @@
  */
 package org.apache.fineract.chat.archive;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class ChatArchiveApp {
@@ -36,7 +39,42 @@ public final class ChatArchiveApp {
             return;
         }
 
-        LOG.info("SLACK_TOKEN is set. Archive update not yet implemented.");
+        Path configPath = Path.of("config", "archive.properties");
+        Optional<ArchiveConfig> config;
+        try {
+            config = ArchiveConfig.load(configPath);
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "Failed to read config at " + configPath + ".", ex);
+            return;
+        }
+
+        if (config.isEmpty()) {
+            LOG.info("Config file missing or channel allowlist empty. Skipping archive update.");
+            return;
+        }
+
+        ArchiveConfig archiveConfig = config.get();
+        LOG.info("Loaded config for " + archiveConfig.channelAllowlist().size() + " channel(s).");
+
+        SlackApiClient slackApiClient = new SlackApiClient();
+        SlackApiClient.AuthTestResponse authResponse;
+        try {
+            authResponse = slackApiClient.authTest(slackToken.get());
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "Slack auth.test call failed.", ex);
+            return;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            LOG.log(Level.SEVERE, "Slack auth.test call interrupted.", ex);
+            return;
+        }
+
+        if (!authResponse.ok()) {
+            LOG.warning("Slack auth.test failed: " + authResponse.error());
+            return;
+        }
+
+        LOG.info("Slack auth.test succeeded for team " + authResponse.team() + ".");
     }
 
     static Optional<String> readEnv(String name) {
@@ -47,3 +85,4 @@ public final class ChatArchiveApp {
         return Optional.of(value);
     }
 }
+
