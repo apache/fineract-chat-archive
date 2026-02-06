@@ -20,7 +20,7 @@
 # Usage: ./scripts/verify-signed-commits.sh [--base-ref <ref>] [--head-ref <ref>] [--strict] [--help]
 set -e
 
-BASE_REF="origin/develop"
+BASE_REF="origin/main"
 HEAD_REF="HEAD"
 STRICT_MODE=false
 
