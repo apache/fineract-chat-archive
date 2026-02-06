@@ -31,6 +31,7 @@ import java.time.Duration;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 final class SlackApiClient {
 
@@ -59,8 +60,7 @@ final class SlackApiClient {
                 .GET()
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request,
-                HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = sendWithRetry(request);
         if (response.statusCode() != 200) {
             return AuthTestResponse.httpError(response.statusCode());
         }
@@ -81,8 +81,7 @@ final class SlackApiClient {
                     .GET()
                     .build();
 
-            HttpResponse<String> response = httpClient.send(request,
-                    HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = sendWithRetry(request);
             if (response.statusCode() != 200) {
                 return ConversationsListResponse.httpError(response.statusCode());
             }
@@ -115,8 +114,7 @@ final class SlackApiClient {
                     .GET()
                     .build();
 
-            HttpResponse<String> response = httpClient.send(request,
-                    HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = sendWithRetry(request);
             if (response.statusCode() != 200) {
                 return ConversationsHistoryResponse.httpError(response.statusCode());
             }
@@ -145,12 +143,39 @@ final class SlackApiClient {
                 .GET()
                 .build();
 
-        HttpResponse<String> response = httpClient.send(request,
-                HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = sendWithRetry(request);
         if (response.statusCode() != 200) {
             return PermalinkResponse.httpError(response.statusCode());
         }
         return objectMapper.readValue(response.body(), PermalinkResponse.class);
+    }
+
+    private HttpResponse<String> sendWithRetry(HttpRequest request)
+            throws IOException, InterruptedException {
+        HttpResponse<String> response = httpClient.send(request,
+                HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() != 429) {
+            return response;
+        }
+        Optional<Duration> retryAfter = parseRetryAfter(response);
+        if (retryAfter.isEmpty()) {
+            return response;
+        }
+        Thread.sleep(retryAfter.get().toMillis());
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private Optional<Duration> parseRetryAfter(HttpResponse<String> response) {
+        Optional<String> header = response.headers().firstValue("Retry-After");
+        if (header.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            long seconds = Long.parseLong(header.get().trim());
+            return Optional.of(Duration.ofSeconds(seconds));
+        } catch (NumberFormatException ex) {
+            return Optional.empty();
+        }
     }
 
     private static URI buildConversationsListUri(String cursor) {
