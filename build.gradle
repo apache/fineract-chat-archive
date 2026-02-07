@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+}
+
+group = 'org.apache.fineract'
+version = '0.1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    implementation platform('com.fasterxml.jackson:jackson-bom:2.19.2')
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    testImplementation platform('org.junit:junit-bom:5.11.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+tasks.register('updateChatArchive', JavaExec) {
+    group = 'application'
+    description = 'Fetch Slack messages and update the static archive.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass.set('org.apache.fineract.chat.archive.ChatArchiveApp')
+}
