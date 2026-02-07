@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-final class SlackApiClient {
+class SlackApiClient {
 
     private static final URI AUTH_TEST_URI = URI.create("https://slack.com/api/auth.test");
     private static final String CONVERSATIONS_LIST_URL = "https://slack.com/api/conversations.list";

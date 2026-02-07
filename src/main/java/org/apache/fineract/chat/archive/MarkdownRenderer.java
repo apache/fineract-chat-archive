@@ -21,7 +21,7 @@ package org.apache.fineract.chat.archive;
 import java.time.LocalDate;
 import java.util.List;
 
-final class MarkdownRenderer {
+class MarkdownRenderer {
 
     private MarkdownRenderer() {}
 
@@ -33,12 +33,10 @@ final class MarkdownRenderer {
         builder.append("channel: ").append(channelName).append('\n');
         builder.append("---\n\n");
 
-        builder.append("| Time (UTC) | User | Message |\n");
-        builder.append("| --- | --- | --- |\n");
         for (Row row : rows) {
-            builder.append("| ").append(formatTimeCell(row)).append(" | ")
-                    .append(escape(row.user())).append(" | ")
-                    .append(escape(row.message())).append(" |\n");
+            builder.append(formatTimeCell(row)).append(" - ")
+                    .append(normalize(row.user())).append(" - ")
+                    .append(normalize(row.message())).append("\n");
         }
         return builder.toString();
     }
@@ -76,12 +74,11 @@ final class MarkdownRenderer {
         return "[" + row.time() + "](" + row.permalink() + ")";
     }
 
-    private static String escape(String value) {
+    private static String normalize(String value) {
         if (value == null) {
             return "";
         }
-        String escaped = value.replace("|", "\\|");
-        return escaped.replace("\r\n", "<br>").replace("\n", "<br>");
+        return value.replace("\r\n", "\n").replace("\r", "\n");
     }
 
     record Row(String time, String user, String message, String permalink) {

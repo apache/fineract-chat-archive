@@ -24,11 +24,19 @@ Output:
 Environment:
 - `SLACK_TOKEN` (Slack Bot token)
 
+Slack app setup:
+1. Create a Slack app (from scratch) in the target workspace.
+2. Add a bot user.
+3. Add the required scopes listed below.
+4. Install the app to the workspace.
+5. Copy the Bot User OAuth Token (starts with `xoxb-`) into `SLACK_TOKEN`.
+
 Required Slack scopes:
 - `channels:read` (list public channels)
 - `channels:history` (read public channel history)
-- `chat:write` (resolve permalinks)
 - `users:read` (resolve user display names)
+Permalinks are resolved via `chat.getPermalink`. If Slack returns `missing_scope`,
+add the scope Slack reports and re-install the app.
 
 GitHub Pages:
 - The `docs/` directory is intended for publishing via GitHub Pages.
