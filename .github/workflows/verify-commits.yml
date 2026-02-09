@@ -27,11 +27,10 @@ permissions:
 jobs:
   verify-signatures:
     name: Verify Commit Signatures
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 1
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -40,8 +39,7 @@ jobs:
 
       - name: Verify signatures
         run: |
-          chmod +x scripts/verify-signed-commits.sh
-          ./scripts/verify-signed-commits.sh \
+          scripts/verify-signed-commits.sh \
             --base-ref origin/${{ github.base_ref }} \
             --head-ref ${{ github.sha }} \
             --strict
