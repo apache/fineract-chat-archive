@@ -53,8 +53,9 @@ Setup:
 ## Instances
 
 If you run this bot and archive data relevant to Fineract, please list your instance here.
+These also serve as working examples if you're looking for extra help installing the archiver.
 
-* #fineract unofficial main public chat (PENDING)
+* #fineract unofficial main public chat (PENDING) - [source code](https://github.com/mifos/chat-archive)
 
 ## History
 
