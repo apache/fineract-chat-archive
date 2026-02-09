@@ -1,6 +1,6 @@
-﻿# Fineract Chat Archive
+# Slack Chat Archiver
 
-A standalone tool that will archive public Slack messages for Apache Fineract into a static site.
+A standalone tool for archiving Slack messages into a static site.
 
 ## Local run
 
@@ -47,3 +47,17 @@ GitHub Actions can run the archive update daily and commit new output.
 
 Setup:
 - Add repository secret `SLACK_TOKEN`
+
+## Instances
+
+If you run this bot and archive data relevant to Fineract, please list your instance here.
+
+* #fineract unofficial main public chat (PENDING)
+
+## History
+
+The [original intent](https://issues.apache.org/jira/browse/FINERACT-2171) of this code was to [archive every public Fineract chat message](https://lists.apache.org/thread/9x6rftxoc4kdwp754odqvktdq2cz106h) into a public, index-able, simple/static HTML website.
+
+## Copyright and License
+
+See `LICENSE` and `NOTICE`.
