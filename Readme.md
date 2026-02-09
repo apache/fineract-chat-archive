@@ -41,11 +41,13 @@ add the scope Slack reports and re-install the app.
 GitHub Pages:
 - The `docs/` directory is intended for publishing via GitHub Pages.
 
-## Automation
+## Install
 
 GitHub Actions can run the archive update daily and commit new output.
 
 Setup:
+- Test locally
+- Install `update-archive.yml` in `.github/workflows/`
 - Add repository secret `SLACK_TOKEN`
 
 ## Instances
