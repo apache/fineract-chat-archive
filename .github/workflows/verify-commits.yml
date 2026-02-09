@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-name: Fineract Signed Commits Check
+name: Signed Commits Check
 
 on:
   pull_request:
