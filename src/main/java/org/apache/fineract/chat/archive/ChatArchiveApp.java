@@ -291,7 +291,8 @@ public final class ChatArchiveApp {
         Instant instant = SlackTimestamp.toInstant(message.ts());
         String time = TIME_FORMATTER.format(instant.atZone(ZoneOffset.UTC));
         String user = resolveUser(message, token, slackApiClient, userCache);
-        String text = message.text() == null ? "" : message.text();
+        String text = SlackTextFormatter.format(message.text(),
+                userId -> resolveUserDisplayName(userId, token, slackApiClient, userCache));
         String permalink = resolvePermalink(channelId, message.ts(), token, slackApiClient,
                 permalinkCache);
         return new MarkdownRenderer.Row(time, user, prefix + text, permalink);
