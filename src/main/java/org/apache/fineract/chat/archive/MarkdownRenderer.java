@@ -57,7 +57,7 @@ class MarkdownRenderer {
     static String renderGlobalIndex(List<String> channels) {
         StringBuilder builder = new StringBuilder();
         builder.append("---\n");
-        builder.append("title: \"Fineract Chat Archive\"\n");
+        builder.append("title: \"Chat Archive\"\n");
         builder.append("---\n\n");
         builder.append("## Channels\n\n");
         for (String channel : channels) {
