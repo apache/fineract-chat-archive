@@ -18,58 +18,55 @@
  */
 package org.apache.fineract.chat.archive;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
 
 final class ArchiveConfig {
+    static final String SLACK_TOKEN_ENV = "SLACK_TOKEN";
 
-    static final String CHANNELS_ALLOWLIST_KEY = "channels.allowlist";
-    static final String OUTPUT_DIR_KEY = "output.dir";
-    static final String STATE_DIR_KEY = "state.dir";
-    static final String LOOKBACK_DAYS_KEY = "fetch.lookback.days";
+    static final String CHANNELS_ALLOWLIST_ENV = "CHANNELS_ALLOWLIST";
+    static final String OUTPUT_DIR_ENV = "OUTPUT_DIR";
+    static final String STATE_DIR_ENV = "STATE_DIR";
+    static final String LOOKBACK_DAYS_ENV = "LOOKBACK_DAYS";
+    static final String LOG_LEVEL_ENV = "LOG_LEVEL";
+
+    static final String DEFAULT_OUTPUT_DIR = "docs";
+    static final String DEFAULT_STATE_DIR = "state";
     static final int DEFAULT_LOOKBACK_DAYS = 1;
 
+    private final String slackToken;
     private final List<String> channelAllowlist;
     private final Path outputDir;
     private final Path stateDir;
     private final int lookbackDays;
 
-    private ArchiveConfig(List<String> channelAllowlist, Path outputDir, Path stateDir,
+    private ArchiveConfig(String slackToken, List<String> channelAllowlist, Path outputDir, Path stateDir,
             int lookbackDays) {
+        this.slackToken = slackToken;
         this.channelAllowlist = List.copyOf(channelAllowlist);
         this.outputDir = outputDir;
         this.stateDir = stateDir;
         this.lookbackDays = lookbackDays;
     }
 
-    static Optional<ArchiveConfig> load(Path configPath) throws IOException {
-        if (!Files.exists(configPath)) {
-            return Optional.empty();
-        }
+    static ArchiveConfig fromEnv() {
+        return fromValues(System.getenv(SLACK_TOKEN_ENV), System.getenv(CHANNELS_ALLOWLIST_ENV), System.getenv(OUTPUT_DIR_ENV),
+                System.getenv(STATE_DIR_ENV), System.getenv(LOOKBACK_DAYS_ENV));
+    }
 
-        Properties properties = new Properties();
-        try (InputStream inputStream = Files.newInputStream(configPath)) {
-            properties.load(inputStream);
-        }
-
-        String allowlist = properties.getProperty(CHANNELS_ALLOWLIST_KEY, "");
+    static ArchiveConfig fromValues(String slackTokenValue, String allowlist, String outputDirValue,
+            String stateDirValue, String lookbackDaysValue) {
+        String slackToken = slackTokenValue != null ? slackTokenValue.trim() : "";
         List<String> channels = parseAllowlist(allowlist);
-        if (channels.isEmpty()) {
-            return Optional.empty();
-        }
+        Path outputDir = Path.of(outputDirValue != null ? outputDirValue.trim() : DEFAULT_OUTPUT_DIR);
+        Path stateDir = Path.of(stateDirValue != null ? stateDirValue.trim() : DEFAULT_STATE_DIR);
+        int lookbackDays = parseLookbackDays(lookbackDaysValue);
+        return new ArchiveConfig(slackToken, channels, outputDir, stateDir, lookbackDays);
+    }
 
-        String outputDirValue = properties.getProperty(OUTPUT_DIR_KEY, "docs").trim();
-        Path outputDir = Path.of(outputDirValue);
-        String stateDirValue = properties.getProperty(STATE_DIR_KEY, "state").trim();
-        Path stateDir = Path.of(stateDirValue);
-        int lookbackDays = parseLookbackDays(properties.getProperty(LOOKBACK_DAYS_KEY));
-        return Optional.of(new ArchiveConfig(channels, outputDir, stateDir, lookbackDays));
+    String slackToken() {
+        return slackToken;
     }
 
     List<String> channelAllowlist() {

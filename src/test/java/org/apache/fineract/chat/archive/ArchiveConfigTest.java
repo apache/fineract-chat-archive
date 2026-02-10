@@ -21,73 +21,52 @@ package org.apache.fineract.chat.archive;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class ArchiveConfigTest {
 
     @Test
-    void loadReturnsConfigWhenAllowlistPresent() throws Exception {
-        Path tempFile = Files.createTempFile("archive", ".properties");
-        String content = String.join("\n",
-                "channels.allowlist=#fineract, dev",
-                "output.dir=docs",
-                "state.dir=state",
-                "fetch.lookback.days=3",
-                "");
-        Files.writeString(tempFile, content, StandardCharsets.UTF_8);
+    void nominalConfig() {
 
-        Optional<ArchiveConfig> config = ArchiveConfig.load(tempFile);
+        ArchiveConfig config = ArchiveConfig.fromValues("dummy", "#fineract, dev", "docs",
+                "state", "3");
 
-        assertTrue(config.isPresent());
-        assertEquals(2, config.get().channelAllowlist().size());
-        assertEquals("fineract", config.get().channelAllowlist().get(0));
-        assertEquals("dev", config.get().channelAllowlist().get(1));
-        assertEquals(Path.of("docs"), config.get().outputDir());
-        assertEquals(Path.of("state"), config.get().stateDir());
-        assertEquals(3, config.get().lookbackDays());
+        assertEquals(2, config.channelAllowlist().size());
+        assertEquals("fineract", config.channelAllowlist().get(0));
+        assertEquals("dev", config.channelAllowlist().get(1));
+        assertEquals(Path.of("docs"), config.outputDir());
+        assertEquals(Path.of("state"), config.stateDir());
+        assertEquals(3, config.lookbackDays());
     }
 
     @Test
-    void loadReturnsEmptyWhenFileMissing() throws Exception {
-        Path missingFile = Path.of("config",
-                "missing-" + System.nanoTime() + ".properties");
+    void missingSlackToken() {
+        ArchiveConfig config = ArchiveConfig.fromValues(" ",null, "docs", "state", "1");
 
-        Optional<ArchiveConfig> config = ArchiveConfig.load(missingFile);
-
-        assertTrue(config.isEmpty());
+        assertTrue(config.slackToken().isEmpty());
     }
 
     @Test
-    void loadReturnsEmptyWhenAllowlistIsEmpty() throws Exception {
-        Path tempFile = Files.createTempFile("archive-empty", ".properties");
-        String content = String.join("\n",
-                "channels.allowlist=",
-                "output.dir=docs",
-                "");
-        Files.writeString(tempFile, content, StandardCharsets.UTF_8);
+    void emptyAllowList() {
+        ArchiveConfig config = ArchiveConfig.fromValues("dummy","", "docs", "state", "1");
 
-        Optional<ArchiveConfig> config = ArchiveConfig.load(tempFile);
-
-        assertTrue(config.isEmpty());
+        assertTrue(config.channelAllowlist().isEmpty());
     }
 
     @Test
-    void loadUsesDefaultLookbackDaysWhenInvalid() throws Exception {
-        Path tempFile = Files.createTempFile("archive-invalid", ".properties");
-        String content = String.join("\n",
-                "channels.allowlist=#fineract",
-                "fetch.lookback.days=0",
-                "");
-        Files.writeString(tempFile, content, StandardCharsets.UTF_8);
+    void fromValuesUsesDefaultLookbackDaysWhenInvalid() {
+        ArchiveConfig config = ArchiveConfig.fromValues("dummy","#fineract", "docs", "state", "0");
 
-        Optional<ArchiveConfig> config = ArchiveConfig.load(tempFile);
+        assertEquals(ArchiveConfig.DEFAULT_LOOKBACK_DAYS, config.lookbackDays());
+    }
 
-        assertTrue(config.isPresent());
-        assertEquals(ArchiveConfig.DEFAULT_LOOKBACK_DAYS, config.get().lookbackDays());
+    @Test
+    void fromValuesUsesDefaultsWhenOptionalValuesNull() {
+        ArchiveConfig config = ArchiveConfig.fromValues("dummy", "#fineract", null, null, null);
+
+        assertEquals(Path.of(ArchiveConfig.DEFAULT_OUTPUT_DIR), config.outputDir());
+        assertEquals(Path.of(ArchiveConfig.DEFAULT_STATE_DIR), config.stateDir());
+        assertEquals(ArchiveConfig.DEFAULT_LOOKBACK_DAYS, config.lookbackDays());
     }
 }
-

@@ -25,56 +25,39 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class ChatArchiveApp {
 
-    static final String SLACK_TOKEN_ENV = "SLACK_TOKEN";
-
     private static final Logger LOG = Logger.getLogger(ChatArchiveApp.class.getName());
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter
             .ofPattern("HH:mm:ss");
 
-    private ChatArchiveApp() {}
-
     public static void main(String[] args) {
-        Optional<String> slackToken = readEnv(SLACK_TOKEN_ENV);
+        ArchiveConfig config = ArchiveConfig.fromEnv();
+
+        String slackToken = config.slackToken();
         if (slackToken.isEmpty()) {
-            LOG.info("SLACK_TOKEN is not set. Skipping archive update.");
+            LOG.info(ArchiveConfig.SLACK_TOKEN_ENV + " is not set. Skipping archive update.");
             return;
         }
 
-        Path configPath = Path.of("config", "archive.properties");
-        Optional<ArchiveConfig> config;
-        try {
-            config = ArchiveConfig.load(configPath);
-        } catch (IOException ex) {
-            LOG.log(Level.SEVERE, "Failed to read config at " + configPath + ".", ex);
+        if (config.channelAllowlist().isEmpty()) {
+            LOG.info(ArchiveConfig.CHANNELS_ALLOWLIST_ENV + " is not set. Skipping archive update.");
             return;
         }
 
-        if (config.isEmpty()) {
-            LOG.info("Config file missing or channel allowlist empty. Skipping archive update.");
-            return;
-        }
-
-        ArchiveConfig archiveConfig = config.get();
-        LOG.info("Loaded config for " + archiveConfig.channelAllowlist().size()
-                + " channel(s).");
+        LOG.info("Using state dir [" + config.stateDir() + "]");
+        LOG.info("Using output dir [" + config.outputDir() + "]");
+        LOG.info("Loaded config for " + config.channelAllowlist().size() + " channel(s).");
+        LOG.info("Will fetch messages for the past " + config.lookbackDays() + " day(s).");
 
         SlackApiClient slackApiClient = new SlackApiClient();
         SlackApiClient.AuthTestResponse authResponse;
         try {
-            authResponse = slackApiClient.authTest(slackToken.get());
+            authResponse = slackApiClient.authTest(config.slackToken());
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "Slack auth.test call failed.", ex);
             return;
@@ -93,7 +76,7 @@ public final class ChatArchiveApp {
 
         SlackApiClient.ConversationsListResponse channelsResponse;
         try {
-            channelsResponse = slackApiClient.listPublicChannels(slackToken.get());
+            channelsResponse = slackApiClient.listPublicChannels(config.slackToken());
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "Slack conversations.list call failed.", ex);
             return;
@@ -110,7 +93,7 @@ public final class ChatArchiveApp {
 
         List<SlackApiClient.SlackChannel> channels = channelsResponse.channels();
         ChannelResolver.ChannelResolution resolution = ChannelResolver.resolve(
-                archiveConfig.channelAllowlist(), channels);
+                config.channelAllowlist(), channels);
 
         if (!resolution.missing().isEmpty()) {
             LOG.warning("Allowlisted channel(s) not found: "
@@ -125,14 +108,14 @@ public final class ChatArchiveApp {
         LOG.info("Resolved " + resolution.resolved().size() + " channel(s).");
 
         Instant windowStart = Instant.now()
-                .minus(Duration.ofDays(archiveConfig.lookbackDays()));
+                .minus(Duration.ofDays(config.lookbackDays()));
         String windowOldest = SlackTimestamp.formatEpochSecond(windowStart.getEpochSecond());
 
-        CursorStore cursorStore = new CursorStore(archiveConfig.stateDir());
+        CursorStore cursorStore = new CursorStore(config.stateDir());
         CursorStore.CursorState cursorState = loadCursorState(cursorStore);
         Map<String, String> cursors = new HashMap<>(cursorState.channels());
 
-        Path dailyRoot = archiveConfig.outputDir().resolve("daily");
+        Path dailyRoot = config.outputDir().resolve("daily");
         Map<String, String> permalinkCache = new HashMap<>();
         Map<String, String> userCache = new HashMap<>();
         Map<String, List<SlackMessage>> threadRepliesCache = new HashMap<>();
@@ -144,7 +127,7 @@ public final class ChatArchiveApp {
                     cursors.get(channelId));
             SlackApiClient.ConversationsHistoryResponse historyResponse;
             try {
-                historyResponse = slackApiClient.listChannelMessages(slackToken.get(), channelId,
+                historyResponse = slackApiClient.listChannelMessages(config.slackToken(), channelId,
                         oldest);
             } catch (IOException ex) {
                 LOG.log(Level.SEVERE, "Slack conversations.history call failed for channel "
@@ -174,7 +157,7 @@ public final class ChatArchiveApp {
             for (Map.Entry<LocalDate, List<SlackMessage>> entry : grouped.entrySet()) {
                 LocalDate date = entry.getKey();
                 List<MarkdownRenderer.Row> rows = toRows(entry.getValue(), channelId,
-                        slackToken.get(), slackApiClient, permalinkCache, userCache,
+                        config.slackToken(), slackApiClient, permalinkCache, userCache,
                         threadRepliesCache);
                 String page = MarkdownRenderer.renderDailyPage(channel.name(), date, rows);
                 Path pagePath = dailyRoot.resolve(channel.name()).resolve(date + ".md");
@@ -199,14 +182,6 @@ public final class ChatArchiveApp {
         if (!anyRendered) {
             LOG.info("No changes detected. Archive output unchanged.");
         }
-    }
-
-    static Optional<String> readEnv(String name) {
-        String value = System.getenv(name);
-        if (value == null || value.isBlank()) {
-            return Optional.empty();
-        }
-        return Optional.of(value);
     }
 
     private static CursorStore.CursorState loadCursorState(CursorStore cursorStore) {
