@@ -10,7 +10,7 @@ A standalone tool for archiving Slack messages into a static site.
 
 Configuration (environment variables):
 
-- `SLACK_TOKEN` (required; Slack Bot token) ⚠️ warning: this keep secret!
+- `SLACK_TOKEN` (required; Slack Bot token) ⚠️ warning: keep this secret!
 - `CHANNELS_ALLOWLIST` (required; comma-separated channel names, e.g. `#fineract`)
 - `OUTPUT_DIR` (optional; relative path for site output, default `docs`)
 - `STATE_DIR` (optional; relative path for cursor state, default `state`)
