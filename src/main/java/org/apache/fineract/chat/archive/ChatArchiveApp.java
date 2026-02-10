@@ -40,13 +40,13 @@ public final class ChatArchiveApp {
 
         String slackToken = config.slackToken();
         if (slackToken.isEmpty()) {
-            LOG.info(ArchiveConfig.SLACK_TOKEN_ENV + " is not set. Skipping archive update.");
-            return;
+            LOG.severe("Missing/invalid required env var: " + ArchiveConfig.SLACK_TOKEN_ENV);
+            System.exit(1);
         }
 
         if (config.channelAllowlist().isEmpty()) {
-            LOG.info(ArchiveConfig.CHANNELS_ALLOWLIST_ENV + " is not set. Skipping archive update.");
-            return;
+            LOG.severe("Missing/invalid required env var: " + ArchiveConfig.CHANNELS_ALLOWLIST_ENV);
+            System.exit(1);
         }
 
         LOG.info("Using state dir [" + config.stateDir() + "]");
@@ -60,16 +60,18 @@ public final class ChatArchiveApp {
             authResponse = slackApiClient.authTest(config.slackToken());
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "Slack auth.test call failed.", ex);
-            return;
+            System.exit(1);
+            return; // or authResponse might not be initialized
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             LOG.log(Level.SEVERE, "Slack auth.test call interrupted.", ex);
-            return;
+            System.exit(1);
+            return; // or authResponse might not be initialized
         }
 
         if (!authResponse.ok()) {
-            LOG.warning("Slack auth.test failed: " + authResponse.error());
-            return;
+            LOG.severe("Slack auth.test not ok: " + authResponse.error());
+            System.exit(1);
         }
 
         LOG.info("Slack auth.test succeeded for team " + authResponse.team() + ".");
@@ -79,16 +81,18 @@ public final class ChatArchiveApp {
             channelsResponse = slackApiClient.listPublicChannels(config.slackToken());
         } catch (IOException ex) {
             LOG.log(Level.SEVERE, "Slack conversations.list call failed.", ex);
-            return;
+            System.exit(1);
+            return; // or channelsResponse might not be initialized
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             LOG.log(Level.SEVERE, "Slack conversations.list call interrupted.", ex);
-            return;
+            System.exit(1);
+            return; // or channelsResponse might not be initialized
         }
 
         if (!channelsResponse.ok()) {
-            LOG.warning("Slack conversations.list failed: " + channelsResponse.error());
-            return;
+            LOG.severe("Slack conversations.list not ok: " + channelsResponse.error());
+            System.exit(1);
         }
 
         List<SlackApiClient.SlackChannel> channels = channelsResponse.channels();
@@ -101,8 +105,8 @@ public final class ChatArchiveApp {
         }
 
         if (resolution.resolved().isEmpty()) {
-            LOG.warning("No allowlisted channels resolved. Skipping archive update.");
-            return;
+            LOG.severe("No allowlisted channels resolved. Skipping archive update.");
+            System.exit(1);
         }
 
         LOG.info("Resolved " + resolution.resolved().size() + " channel(s).");
@@ -141,7 +145,7 @@ public final class ChatArchiveApp {
             }
 
             if (!historyResponse.ok()) {
-                LOG.warning("Slack conversations.history failed for channel " + channel.name()
+                LOG.warning("Slack conversations.history not ok for channel " + channel.name()
                         + ": " + historyResponse.error());
                 continue;
             }
@@ -359,7 +363,7 @@ public final class ChatArchiveApp {
         }
 
         if (!response.ok()) {
-            LOG.warning("Slack conversations.replies failed: " + response.error());
+            LOG.warning("Slack conversations.replies not ok: " + response.error());
             repliesCache.put(threadTs, List.copyOf(replies));
             return replies;
         }
@@ -441,7 +445,7 @@ public final class ChatArchiveApp {
             return null;
         }
         if (!response.ok()) {
-            LOG.warning("Slack chat.getPermalink failed: " + response.error());
+            LOG.warning("Slack chat.getPermalink not ok: " + response.error());
             permalinkCache.put(cacheKey, null);
             return null;
         }
