@@ -2,16 +2,41 @@
 
 A standalone tool for archiving Slack messages into a static site.
 
-## Local run
+## Install
+
+GitHub Actions can run the archive update daily and commit new output.
+
+### Local
+
+- Clone this repo
+- Install Java 25
+- Test (see below)
+- Set `SLACK_TOKEN` and `CHANNELS_ALLOWLIST` env vars
+- Run (see below)
+
+### GitHub Actions
+
+- Create a new repo
+- Copy `update-archive.yml` to a folder named `.github/workflows/`
+- Customize `CHANNELS_ALLOWLIST` env var in `update-archive.yml`
+- Add repository secret `SLACK_TOKEN`
+
+## Test
 
 ```bash
-./gradlew updateChatArchive
+./gradlew test
+```
+
+## Run
+
+```bash
+./gradlew --quiet updateChatArchive
 ```
 
 Configuration (environment variables):
 
 - `SLACK_TOKEN` (required; Slack Bot token) ⚠️ warning: keep this secret!
-- `CHANNELS_ALLOWLIST` (required; comma-separated channel names, e.g. `#fineract`)
+- `CHANNELS_ALLOWLIST` (required; comma-separated channel names, e.g. `#general,#random`)
 - `OUTPUT_DIR` (optional; relative path for site output, default `docs`)
 - `STATE_DIR` (optional; relative path for cursor state, default `state`)
 - `LOOKBACK_DAYS` (optional; how many days to re-fetch, default `1`)
@@ -42,15 +67,6 @@ add the scope Slack reports and re-install the app.
 
 GitHub Pages:
 - The `docs/` directory is intended for publishing via GitHub Pages.
-
-## Install
-
-GitHub Actions can run the archive update daily and commit new output.
-
-Setup:
-- Test locally
-- Install `update-archive.yml` in `.github/workflows/`
-- Add repository secret `SLACK_TOKEN`
 
 ## Instances
 
