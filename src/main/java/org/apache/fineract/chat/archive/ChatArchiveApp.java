@@ -271,18 +271,16 @@ public final class ChatArchiveApp {
                 if (parentSet.contains(message.threadTs())) {
                     continue;
                 }
-                rows.add(toRow(message, channelId, token, slackApiClient, permalinkCache,
-                        userCache, "-> "));
+                rows.add(toRow(message, channelId, token, slackApiClient, permalinkCache, userCache));
                 continue;
             }
-            rows.add(toRow(message, channelId, token, slackApiClient, permalinkCache, userCache,
-                    ""));
+            rows.add(toRow(message, channelId, token, slackApiClient, permalinkCache, userCache));
             if (message.threadTs() != null && message.threadTs().equals(message.ts())) {
                 List<SlackMessage> replies = resolveThreadReplies(channelId, message.threadTs(),
                         repliesByParent, threadRepliesCache, slackApiClient, token);
                 for (SlackMessage reply : replies) {
                     rows.add(toRow(reply, channelId, token, slackApiClient, permalinkCache,
-                            userCache, "-> "));
+                            userCache));
                 }
             }
         }
@@ -291,7 +289,7 @@ public final class ChatArchiveApp {
 
     private static MarkdownRenderer.Row toRow(SlackMessage message, String channelId, String token,
             SlackApiClient slackApiClient, Map<String, String> permalinkCache,
-            Map<String, String> userCache, String prefix) {
+            Map<String, String> userCache) {
         Instant instant = SlackTimestamp.toInstant(message.ts());
         String time = TIME_FORMATTER.format(instant.atZone(ZoneOffset.UTC));
         String rfcTimedate = DateTimeFormatter.RFC_1123_DATE_TIME.format(instant.atZone(ZoneOffset.UTC));
@@ -300,7 +298,7 @@ public final class ChatArchiveApp {
                 userId -> resolveUserDisplayName(userId, token, slackApiClient, userCache));
         String permalink = resolvePermalink(channelId, message.ts(), token, slackApiClient,
                 permalinkCache);
-        return new MarkdownRenderer.Row(time, rfcTimedate, user, prefix + text, permalink);
+        return new MarkdownRenderer.Row(isReply(message), time, rfcTimedate, user, text, permalink);
     }
 
     private static boolean isReply(SlackMessage message) {

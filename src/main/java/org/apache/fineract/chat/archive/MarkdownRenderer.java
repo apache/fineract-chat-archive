@@ -35,8 +35,11 @@ class MarkdownRenderer {
 
         for (int i = 0; i < rows.size(); i++) {
             Row row = rows.get(i);
-            builder.append(formatTimeCell(row)).append(" - ")
-                    .append(normalize(row.user())).append(" - ")
+            if (row.isReply()) {
+                builder.append("→ ");
+            }
+            builder.append(formatTimeCell(row)).append(" **")
+                    .append(normalize(row.user())).append("** ")
                     .append(normalize(row.message())).append("\n");
             if (i + 1 < rows.size()) {
                 builder.append("\n");
@@ -85,6 +88,6 @@ class MarkdownRenderer {
         return value.replace("\r\n", "\n").replace("\r", "\n");
     }
 
-    record Row(String timeAbbrev, String rfcDatetime, String user, String message, String permalink) {
+    record Row(boolean isReply, String timeAbbrev, String rfcDatetime, String user, String message, String permalink) {
     }
 }
