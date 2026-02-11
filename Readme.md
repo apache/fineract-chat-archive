@@ -6,16 +6,17 @@ A standalone tool for archiving Slack messages into a static site.
 
 GitHub Actions can run the archive update daily and commit new output.
 
-### Local
+### Run local
 
 - Clone this repo
 - Install Java 25
-- Test (see below)
 - Set `SLACK_TOKEN` and `CHANNELS_ALLOWLIST` env vars
+- Set up Slack app (see below)
 - Run (see below)
 
-### GitHub Actions
+### Run on GitHub Actions
 
+- Set up Slack app (see below)
 - Create a new repo
 - Copy `update-archive.yml` to a folder named `.github/workflows/`
 - Customize `CHANNELS_ALLOWLIST` env var in `update-archive.yml`
@@ -55,6 +56,7 @@ Slack app setup:
 3. Add the required scopes listed below.
 4. Install the app to the workspace.
 5. Copy the Bot User OAuth Token (starts with `xoxb-`) into `SLACK_TOKEN`.
+6. Join the bot to all channels in `CHANNELS_ALLOWLIST`.
 
 Required Slack scopes:
 
