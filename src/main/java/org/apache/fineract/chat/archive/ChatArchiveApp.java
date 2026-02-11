@@ -33,7 +33,7 @@ public final class ChatArchiveApp {
 
     private static final Logger LOG = Logger.getLogger(ChatArchiveApp.class.getName());
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter
-            .ofPattern("HH:mm:ss");
+            .ofPattern("EEE HH:mm");
 
     public static void main(String[] args) {
         ArchiveConfig config = ArchiveConfig.fromEnv();
@@ -294,12 +294,13 @@ public final class ChatArchiveApp {
             Map<String, String> userCache, String prefix) {
         Instant instant = SlackTimestamp.toInstant(message.ts());
         String time = TIME_FORMATTER.format(instant.atZone(ZoneOffset.UTC));
+        String rfcTimedate = DateTimeFormatter.RFC_1123_DATE_TIME.format(instant.atZone(ZoneOffset.UTC));
         String user = resolveUser(message, token, slackApiClient, userCache);
         String text = SlackTextFormatter.format(message.text(),
                 userId -> resolveUserDisplayName(userId, token, slackApiClient, userCache));
         String permalink = resolvePermalink(channelId, message.ts(), token, slackApiClient,
                 permalinkCache);
-        return new MarkdownRenderer.Row(time, user, prefix + text, permalink);
+        return new MarkdownRenderer.Row(time, rfcTimedate, user, prefix + text, permalink);
     }
 
     private static boolean isReply(SlackMessage message) {

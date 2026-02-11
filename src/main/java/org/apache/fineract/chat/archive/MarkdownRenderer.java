@@ -73,9 +73,9 @@ class MarkdownRenderer {
 
     private static String formatTimeCell(Row row) {
         if (row.permalink() == null || row.permalink().isBlank()) {
-            return row.time();
+            return row.timeAbbrev();
         }
-        return "[" + row.time() + "](" + row.permalink() + ")";
+        return "[" + row.timeAbbrev() + "](" + row.permalink() + " \"" + row.rfcDatetime() + "\" )";
     }
 
     private static String normalize(String value) {
@@ -85,6 +85,6 @@ class MarkdownRenderer {
         return value.replace("\r\n", "\n").replace("\r", "\n");
     }
 
-    record Row(String time, String user, String message, String permalink) {
+    record Row(String timeAbbrev, String rfcDatetime, String user, String message, String permalink) {
     }
 }
