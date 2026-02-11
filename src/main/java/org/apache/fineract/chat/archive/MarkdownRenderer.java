@@ -33,10 +33,14 @@ class MarkdownRenderer {
         builder.append("channel: ").append(channelName).append('\n');
         builder.append("---\n\n");
 
-        for (Row row : rows) {
+        for (int i = 0; i < rows.size(); i++) {
+            Row row = rows.get(i);
             builder.append(formatTimeCell(row)).append(" - ")
                     .append(normalize(row.user())).append(" - ")
                     .append(normalize(row.message())).append("\n");
+            if (i + 1 < rows.size()) {
+                builder.append("\n");
+            }
         }
         return builder.toString();
     }
