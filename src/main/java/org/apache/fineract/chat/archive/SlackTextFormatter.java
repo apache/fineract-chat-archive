@@ -29,22 +29,22 @@ final class SlackTextFormatter {
     private static final Pattern TOKEN_PATTERN = Pattern.compile("<([^>]+)>");
     private static final Pattern EMOJI_PATTERN = Pattern.compile(":([a-zA-Z0-9_+\\-]+):");
     private static final Map<String, String> EMOJI_MAP = Map.ofEntries(
-            Map.entry("wave", "\uD83D\uDC4B"),
-            Map.entry("thumbsup", "\uD83D\uDC4D"),
-            Map.entry("+1", "\uD83D\uDC4D"),
-            Map.entry("thumbsdown", "\uD83D\uDC4E"),
-            Map.entry("-1", "\uD83D\uDC4E"),
-            Map.entry("smile", "\uD83D\uDE04"),
-            Map.entry("grin", "\uD83D\uDE01"),
-            Map.entry("joy", "\uD83D\uDE02"),
-            Map.entry("sob", "\uD83D\uDE2D"),
-            Map.entry("heart", "\u2764\uFE0F"),
-            Map.entry("tada", "\uD83C\uDF89"),
-            Map.entry("clap", "\uD83D\uDC4F"),
-            Map.entry("pray", "\uD83D\uDE4F"),
-            Map.entry("fire", "\uD83D\uDD25"),
-            Map.entry("eyes", "\uD83D\uDC40"),
-            Map.entry("white_check_mark", "\u2705"));
+            Map.entry("wave", "👋"),
+            Map.entry("thumbsup", "👍"),
+            Map.entry("+1", "👍"),
+            Map.entry("thumbsdown", "👎"),
+            Map.entry("-1", "👎"),
+            Map.entry("smile", "😄"),
+            Map.entry("grin", "😁"),
+            Map.entry("joy", "😂"),
+            Map.entry("sob", "😭"),
+            Map.entry("heart", "♥️"),
+            Map.entry("tada", "🎉"),
+            Map.entry("clap", "👏"),
+            Map.entry("pray", "🙏"),
+            Map.entry("fire", "🔥"),
+            Map.entry("eyes", "👀"),
+            Map.entry("white_check_mark", "✅"));
 
     private SlackTextFormatter() {}
 

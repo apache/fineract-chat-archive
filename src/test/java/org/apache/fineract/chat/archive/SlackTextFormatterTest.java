@@ -37,7 +37,7 @@ class SlackTextFormatterTest {
     void formatsSpecialMentionsAndEmoji() {
         String input = "Hi <!here> :wave:";
         String formatted = SlackTextFormatter.format(input, id -> id);
-        assertEquals("Hi @here \uD83D\uDC4B", formatted);
+        assertEquals("Hi @here 👋", formatted);
     }
 
     @Test
