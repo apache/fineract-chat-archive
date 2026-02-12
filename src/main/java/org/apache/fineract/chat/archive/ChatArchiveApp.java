@@ -179,7 +179,7 @@ public final class ChatArchiveApp {
             anyRendered = true;
         }
 
-        if (renderIndexes(dailyRoot)) {
+        if (renderIndexes(dailyRoot, config.siteBaseUrl())) {
             anyRendered = true;
         }
 
@@ -453,12 +453,14 @@ public final class ChatArchiveApp {
         return response.permalink();
     }
 
-    private static boolean renderIndexes(Path dailyRoot) {
+    private static boolean renderIndexes(Path dailyRoot, String siteBaseUrl) {
         boolean changed = false;
         try {
             List<String> channels = IndexRenderer.listChannels(dailyRoot);
+            Map<String, List<LocalDate>> datesByChannel = new LinkedHashMap<>();
             for (String channel : channels) {
                 List<LocalDate> dates = IndexRenderer.listDates(dailyRoot.resolve(channel));
+                datesByChannel.put(channel, dates);
                 String index = MarkdownRenderer.renderChannelIndex(channel, dates);
                 Path indexPath = dailyRoot.resolve(channel).resolve("index.md");
                 changed = FileWriterUtil.writeIfChanged(indexPath, index) || changed;
@@ -466,6 +468,20 @@ public final class ChatArchiveApp {
             String globalIndex = MarkdownRenderer.renderGlobalIndex(channels);
             Path globalPath = dailyRoot.getParent().resolve("index.md");
             changed = FileWriterUtil.writeIfChanged(globalPath, globalIndex) || changed;
+
+            String stylesheet = SiteMetadataRenderer.renderStylesheet();
+            Path stylesheetPath = dailyRoot.getParent().resolve("assets").resolve("chat-archive.css");
+            changed = FileWriterUtil.writeIfChanged(stylesheetPath, stylesheet) || changed;
+
+            String robotsTxt = SiteMetadataRenderer.renderRobotsTxt(siteBaseUrl);
+            Path robotsPath = dailyRoot.getParent().resolve("robots.txt");
+            changed = FileWriterUtil.writeIfChanged(robotsPath, robotsTxt) || changed;
+
+            if (!siteBaseUrl.isBlank()) {
+                String sitemap = SiteMetadataRenderer.renderSitemapXml(siteBaseUrl, datesByChannel);
+                Path sitemapPath = dailyRoot.getParent().resolve("sitemap.xml");
+                changed = FileWriterUtil.writeIfChanged(sitemapPath, sitemap) || changed;
+            }
         } catch (IOException ex) {
             LOG.log(Level.WARNING, "Failed to write index files.", ex);
         }

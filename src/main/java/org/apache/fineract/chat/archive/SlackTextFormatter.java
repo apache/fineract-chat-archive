@@ -18,6 +18,7 @@
  */
 package org.apache.fineract.chat.archive;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -57,14 +58,16 @@ final class SlackTextFormatter {
 
     private static String replaceTokens(String text, Function<String, String> userResolver) {
         Matcher matcher = TOKEN_PATTERN.matcher(text);
-        StringBuffer buffer = new StringBuffer();
+        StringBuilder builder = new StringBuilder();
+        int cursor = 0;
         while (matcher.find()) {
+            builder.append(escapeHtml(text.substring(cursor, matcher.start())));
             String token = matcher.group(1);
-            String replacement = formatToken(token, userResolver);
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
+            builder.append(formatToken(token, userResolver));
+            cursor = matcher.end();
         }
-        matcher.appendTail(buffer);
-        return buffer.toString();
+        builder.append(escapeHtml(text.substring(cursor)));
+        return builder.toString();
     }
 
     private static String formatToken(String token, Function<String, String> userResolver) {
@@ -90,38 +93,52 @@ final class SlackTextFormatter {
         if (label == null || label.isBlank()) {
             label = userId;
         }
-        if (label.startsWith("@")) {
-            return label;
+        if (!label.startsWith("@")) {
+            label = "@" + label;
         }
-        return "@" + label;
+        return escapeHtml(label);
     }
 
     private static String formatChannel(String token) {
         String[] parts = token.split("\\|", 2);
         String label = parts.length > 1 ? parts[1] : parts[0];
-        if (label.startsWith("#")) {
-            return label;
+        if (!label.startsWith("#")) {
+            label = "#" + label;
         }
-        return "#" + label;
+        return escapeHtml(label);
     }
 
     private static String formatSpecial(String token) {
         String[] parts = token.split("\\|", 2);
         String label = parts.length > 1 ? parts[1] : parts[0];
-        if (label.startsWith("@")) {
-            return label;
+        if (!label.startsWith("@")) {
+            label = "@" + label;
         }
-        return "@" + label;
+        return escapeHtml(label);
     }
 
     private static String formatLink(String token) {
         String[] parts = token.split("\\|", 2);
-        String url = parts[0];
-        if (parts.length == 1) {
-            return url;
+        String url = parts[0].trim();
+        String label = parts.length > 1 ? parts[1] : parts[0];
+        if (label == null || label.isBlank()) {
+            label = url;
         }
-        String label = parts[1];
-        return "[" + label + "](" + url + ")";
+        if (!isSupportedHref(url)) {
+            return escapeHtml(label);
+        }
+        return "<a class=\"archive-link\" href=\"" + escapeHtmlAttribute(url) + "\">"
+                + escapeHtml(label) + "</a>";
+    }
+
+    private static boolean isSupportedHref(String href) {
+        if (href == null || href.isBlank()) {
+            return false;
+        }
+        String normalized = href.toLowerCase(Locale.ROOT);
+        return normalized.startsWith("https://")
+                || normalized.startsWith("http://")
+                || normalized.startsWith("mailto:");
     }
 
     private static String replaceEmoji(String text) {
@@ -138,5 +155,18 @@ final class SlackTextFormatter {
         }
         matcher.appendTail(buffer);
         return buffer.toString();
+    }
+
+    private static String escapeHtml(String value) {
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
+    private static String escapeHtmlAttribute(String value) {
+        return escapeHtml(value);
     }
 }

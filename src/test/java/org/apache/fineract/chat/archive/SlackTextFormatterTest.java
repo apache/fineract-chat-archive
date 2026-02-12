@@ -29,7 +29,8 @@ class SlackTextFormatterTest {
     void formatsSlackLinksAndMentions() {
         String input = "See <https://example.com|this> and ping <@U1> in <#C1|general>.";
         String formatted = SlackTextFormatter.format(input, Map.of("U1", "alex")::get);
-        assertEquals("See [this](https://example.com) and ping @alex in #general.", formatted);
+        assertEquals("See <a class=\"archive-link\" href=\"https://example.com\">this</a> and ping @alex in #general.",
+                formatted);
     }
 
     @Test
@@ -37,5 +38,13 @@ class SlackTextFormatterTest {
         String input = "Hi <!here> :wave:";
         String formatted = SlackTextFormatter.format(input, id -> id);
         assertEquals("Hi @here \uD83D\uDC4B", formatted);
+    }
+
+    @Test
+    void escapesNonTokenMarkup() {
+        String input = "Ignore <javascript:alert(1)|click> and visit <https://example.com>.";
+        String formatted = SlackTextFormatter.format(input, id -> id);
+        assertEquals("Ignore click and visit "
+                + "<a class=\"archive-link\" href=\"https://example.com\">https://example.com</a>.", formatted);
     }
 }

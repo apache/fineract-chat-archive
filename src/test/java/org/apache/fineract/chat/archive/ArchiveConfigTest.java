@@ -68,5 +68,14 @@ class ArchiveConfigTest {
         assertEquals(Path.of(ArchiveConfig.DEFAULT_OUTPUT_DIR), config.outputDir());
         assertEquals(Path.of(ArchiveConfig.DEFAULT_STATE_DIR), config.stateDir());
         assertEquals(ArchiveConfig.DEFAULT_LOOKBACK_DAYS, config.lookbackDays());
+        assertEquals("", config.siteBaseUrl());
+    }
+
+    @Test
+    void fromValuesNormalizesSiteBaseUrl() {
+        ArchiveConfig config = ArchiveConfig.fromValues("dummy", "#fineract", "docs", "state", "1",
+                "https://example.com/archive/");
+
+        assertEquals("https://example.com/archive", config.siteBaseUrl());
     }
 }
