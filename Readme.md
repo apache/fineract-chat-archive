@@ -19,8 +19,11 @@ GitHub Actions can run the archive update daily and commit new output.
 - Set up Slack app (see below)
 - Create a new repo
 - Copy `update-archive.yml` to a folder named `.github/workflows/`
+- Copy `deploy-pages.yml` to a folder named `.github/workflows/`
 - Customize `CHANNELS_ALLOWLIST` env var in `update-archive.yml`
+- Customize `SITE_BASE_URL` env var in `update-archive.yml` (example: `https://<org>.github.io/<repo>`)
 - Add repository secret `SLACK_TOKEN`
+- Enable GitHub Pages in repository settings with source `GitHub Actions`
 
 ## Test
 
@@ -41,13 +44,16 @@ Configuration (environment variables):
 - `OUTPUT_DIR` (optional; relative path for site output, default `docs`)
 - `STATE_DIR` (optional; relative path for cursor state, default `state`)
 - `LOOKBACK_DAYS` (optional; how many days to re-fetch, default `1`)
+- `SITE_BASE_URL` (optional; base URL for sitemap/robots generation)
 
 Output:
 
 - Daily pages: `docs/daily/<channel>/<YYYY-MM-DD>.md`
 - Channel index: `docs/daily/<channel>/index.md`
 - Global index: `docs/index.md`
+- Stylesheet: `docs/assets/chat-archive.css`
 - Thread replies are rendered below parent messages with a simple prefix.
+- Front matter includes permalink values so published Pages URLs are extensionless (for example `/daily/fineract/2026-02-06/`).
 
 Slack app setup:
 
@@ -69,6 +75,9 @@ add the scope Slack reports and re-install the app.
 
 GitHub Pages:
 - The `docs/` directory is intended for publishing via GitHub Pages.
+- `deploy-pages.yml` deploys the `docs/` directory.
+- `docs/robots.txt` is always generated.
+- `docs/sitemap.xml` is generated when `SITE_BASE_URL` is set.
 
 ## Instances
 

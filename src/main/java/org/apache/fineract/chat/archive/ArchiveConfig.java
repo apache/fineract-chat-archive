@@ -29,6 +29,7 @@ final class ArchiveConfig {
     static final String OUTPUT_DIR_ENV = "OUTPUT_DIR";
     static final String STATE_DIR_ENV = "STATE_DIR";
     static final String LOOKBACK_DAYS_ENV = "LOOKBACK_DAYS";
+    static final String SITE_BASE_URL_ENV = "SITE_BASE_URL";
     static final String LOG_LEVEL_ENV = "LOG_LEVEL";
 
     static final String DEFAULT_OUTPUT_DIR = "docs";
@@ -40,29 +41,37 @@ final class ArchiveConfig {
     private final Path outputDir;
     private final Path stateDir;
     private final int lookbackDays;
+    private final String siteBaseUrl;
 
     private ArchiveConfig(String slackToken, List<String> channelAllowlist, Path outputDir, Path stateDir,
-            int lookbackDays) {
+            int lookbackDays, String siteBaseUrl) {
         this.slackToken = slackToken;
         this.channelAllowlist = List.copyOf(channelAllowlist);
         this.outputDir = outputDir;
         this.stateDir = stateDir;
         this.lookbackDays = lookbackDays;
+        this.siteBaseUrl = siteBaseUrl;
     }
 
     static ArchiveConfig fromEnv() {
         return fromValues(System.getenv(SLACK_TOKEN_ENV), System.getenv(CHANNELS_ALLOWLIST_ENV), System.getenv(OUTPUT_DIR_ENV),
-                System.getenv(STATE_DIR_ENV), System.getenv(LOOKBACK_DAYS_ENV));
+                System.getenv(STATE_DIR_ENV), System.getenv(LOOKBACK_DAYS_ENV), System.getenv(SITE_BASE_URL_ENV));
     }
 
     static ArchiveConfig fromValues(String slackTokenValue, String allowlist, String outputDirValue,
             String stateDirValue, String lookbackDaysValue) {
+        return fromValues(slackTokenValue, allowlist, outputDirValue, stateDirValue, lookbackDaysValue, null);
+    }
+
+    static ArchiveConfig fromValues(String slackTokenValue, String allowlist, String outputDirValue,
+            String stateDirValue, String lookbackDaysValue, String siteBaseUrlValue) {
         String slackToken = slackTokenValue != null ? slackTokenValue.trim() : "";
         List<String> channels = parseAllowlist(allowlist);
         Path outputDir = Path.of(outputDirValue != null ? outputDirValue.trim() : DEFAULT_OUTPUT_DIR);
         Path stateDir = Path.of(stateDirValue != null ? stateDirValue.trim() : DEFAULT_STATE_DIR);
         int lookbackDays = parseLookbackDays(lookbackDaysValue);
-        return new ArchiveConfig(slackToken, channels, outputDir, stateDir, lookbackDays);
+        String siteBaseUrl = normalizeSiteBaseUrl(siteBaseUrlValue);
+        return new ArchiveConfig(slackToken, channels, outputDir, stateDir, lookbackDays, siteBaseUrl);
     }
 
     String slackToken() {
@@ -83,6 +92,10 @@ final class ArchiveConfig {
 
     int lookbackDays() {
         return lookbackDays;
+    }
+
+    String siteBaseUrl() {
+        return siteBaseUrl;
     }
 
     private static List<String> parseAllowlist(String value) {
@@ -115,6 +128,17 @@ final class ArchiveConfig {
         } catch (NumberFormatException ex) {
             return DEFAULT_LOOKBACK_DAYS;
         }
+    }
+
+    private static String normalizeSiteBaseUrl(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String normalized = value.trim();
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
     }
 }
 
