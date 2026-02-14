@@ -20,12 +20,18 @@ package org.apache.fineract.chat.archive;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 record SlackMessage(String ts, String user, @JsonProperty("bot_id") String botId, String text,
-        String subtype, @JsonProperty("thread_ts") String threadTs, Edited edited) {
+        String subtype, @JsonProperty("thread_ts") String threadTs, Edited edited,
+        List<Reaction> reactions) {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Edited(String ts) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record Reaction(String name, int count) {
     }
 }
