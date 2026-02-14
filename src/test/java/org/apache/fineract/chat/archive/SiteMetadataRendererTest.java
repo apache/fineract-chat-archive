@@ -58,13 +58,4 @@ class SiteMetadataRendererTest {
         assertTrue(sitemap.contains("<loc>https://example.org/archive/daily/fineract/2026-02-05/</loc>"));
     }
 
-    @Test
-    void stylesheetIncludesArchiveClasses() {
-        String css = SiteMetadataRenderer.renderStylesheet();
-
-        assertTrue(css.contains(".archive-message"));
-        assertTrue(css.contains(".archive-user"));
-        assertTrue(css.contains(".archive-text"));
-        assertTrue(css.contains(".archive-link"));
-    }
 }

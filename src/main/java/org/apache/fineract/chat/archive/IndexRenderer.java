@@ -48,9 +48,8 @@ final class IndexRenderer {
             return List.of();
         }
         try (Stream<Path> stream = Files.list(channelDir)) {
-            return stream.filter(path -> path.getFileName().toString().endsWith(".md"))
-                    .filter(path -> !path.getFileName().toString().equalsIgnoreCase("index.md"))
-                    .map(path -> path.getFileName().toString().replace(".md", ""))
+            return stream.filter(Files::isDirectory)
+                    .map(path -> path.getFileName().toString())
                     .map(IndexRenderer::parseDate)
                     .filter(date -> date != null)
                     .sorted(Comparator.reverseOrder())

@@ -160,11 +160,12 @@ public final class ChatArchiveApp {
             Map<LocalDate, List<SlackMessage>> grouped = groupByDate(messages);
             for (Map.Entry<LocalDate, List<SlackMessage>> entry : grouped.entrySet()) {
                 LocalDate date = entry.getKey();
-                List<MarkdownRenderer.Row> rows = toRows(entry.getValue(), channelId,
+                List<HtmlRenderer.Row> rows = toRows(entry.getValue(), channelId,
                         config.slackToken(), slackApiClient, permalinkCache, userCache,
                         threadRepliesCache);
-                String page = MarkdownRenderer.renderDailyPage(channel.name(), date, rows);
-                Path pagePath = dailyRoot.resolve(channel.name()).resolve(date + ".md");
+                String page = HtmlRenderer.renderDailyPage(channel.name(), date, rows);
+                Path pagePath = dailyRoot.resolve(channel.name()).resolve(date.toString())
+                        .resolve("index.html");
                 try {
                     boolean changed = FileWriterUtil.writeIfChanged(pagePath, page);
                     anyRendered = anyRendered || changed;
@@ -257,10 +258,10 @@ public final class ChatArchiveApp {
         return grouped;
     }
 
-    private static List<MarkdownRenderer.Row> toRows(List<SlackMessage> messages, String channelId,
+    private static List<HtmlRenderer.Row> toRows(List<SlackMessage> messages, String channelId,
             String token, SlackApiClient slackApiClient, Map<String, String> permalinkCache,
             Map<String, String> userCache, Map<String, List<SlackMessage>> threadRepliesCache) {
-        List<MarkdownRenderer.Row> rows = new ArrayList<>();
+        List<HtmlRenderer.Row> rows = new ArrayList<>();
         Map<String, List<SlackMessage>> repliesByParent = collectReplies(messages);
         Set<String> parentSet = collectParentIds(messages);
         for (SlackMessage message : messages) {
@@ -287,7 +288,7 @@ public final class ChatArchiveApp {
         return rows;
     }
 
-    private static MarkdownRenderer.Row toRow(SlackMessage message, String channelId, String token,
+    private static HtmlRenderer.Row toRow(SlackMessage message, String channelId, String token,
             SlackApiClient slackApiClient, Map<String, String> permalinkCache,
             Map<String, String> userCache) {
         Instant instant = SlackTimestamp.toInstant(message.ts());
@@ -298,7 +299,9 @@ public final class ChatArchiveApp {
                 userId -> resolveUserDisplayName(userId, token, slackApiClient, userCache));
         String permalink = resolvePermalink(channelId, message.ts(), token, slackApiClient,
                 permalinkCache);
-        return new MarkdownRenderer.Row(isReply(message), time, rfcTimedate, user, text, permalink);
+        List<String> reactions = formatReactions(message.reactions());
+        return new HtmlRenderer.Row(isReply(message), time, rfcTimedate, user, text, permalink,
+                reactions);
     }
 
     private static boolean isReply(SlackMessage message) {
@@ -453,6 +456,24 @@ public final class ChatArchiveApp {
         return response.permalink();
     }
 
+    private static List<String> formatReactions(List<SlackMessage.Reaction> reactions) {
+        if (reactions == null || reactions.isEmpty()) {
+            return List.of();
+        }
+        List<String> badges = new ArrayList<>();
+        for (SlackMessage.Reaction reaction : reactions) {
+            if (reaction == null || reaction.name() == null || reaction.count() <= 0) {
+                continue;
+            }
+            String symbol = SlackTextFormatter.resolveEmoji(reaction.name());
+            if (symbol == null || symbol.isBlank()) {
+                symbol = ":" + reaction.name() + ":";
+            }
+            badges.add(symbol + " " + reaction.count());
+        }
+        return List.copyOf(badges);
+    }
+
     private static boolean renderIndexes(Path dailyRoot, String siteBaseUrl) {
         boolean changed = false;
         try {
@@ -461,17 +482,13 @@ public final class ChatArchiveApp {
             for (String channel : channels) {
                 List<LocalDate> dates = IndexRenderer.listDates(dailyRoot.resolve(channel));
                 datesByChannel.put(channel, dates);
-                String index = MarkdownRenderer.renderChannelIndex(channel, dates);
-                Path indexPath = dailyRoot.resolve(channel).resolve("index.md");
+                String index = HtmlRenderer.renderChannelIndex(channel, dates);
+                Path indexPath = dailyRoot.resolve(channel).resolve("index.html");
                 changed = FileWriterUtil.writeIfChanged(indexPath, index) || changed;
             }
-            String globalIndex = MarkdownRenderer.renderGlobalIndex(channels);
-            Path globalPath = dailyRoot.getParent().resolve("index.md");
+            String globalIndex = HtmlRenderer.renderGlobalIndex(channels);
+            Path globalPath = dailyRoot.getParent().resolve("index.html");
             changed = FileWriterUtil.writeIfChanged(globalPath, globalIndex) || changed;
-
-            String stylesheet = SiteMetadataRenderer.renderStylesheet();
-            Path stylesheetPath = dailyRoot.getParent().resolve("assets").resolve("chat-archive.css");
-            changed = FileWriterUtil.writeIfChanged(stylesheetPath, stylesheet) || changed;
 
             String robotsTxt = SiteMetadataRenderer.renderRobotsTxt(siteBaseUrl);
             Path robotsPath = dailyRoot.getParent().resolve("robots.txt");
