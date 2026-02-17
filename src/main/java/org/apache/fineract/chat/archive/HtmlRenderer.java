@@ -165,7 +165,7 @@ final class HtmlRenderer {
             builder.append("<span class=\"archive-reply-label\">reply</span>\n");
         }
         builder.append(formatTimeCell(row));
-        builder.append("<span class=\"archive-user\">\n")
+        builder.append("<span class=\"archive-user\">")
                 .append(escapeHtml(normalize(row.user())))
                 .append("</span>\n");
         builder.append("</div>\n");
@@ -224,7 +224,7 @@ final class HtmlRenderer {
                 continue;
             }
 
-            builder.append("<span class=\"archive-line\">\n")
+            builder.append("<span class=\"archive-line\">")
                     .append(applyInlineMarkup(line))
                     .append("</span>\n");
             if (index < lines.length - 1) {
