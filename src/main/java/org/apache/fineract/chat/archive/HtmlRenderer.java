@@ -175,7 +175,7 @@ final class HtmlRenderer {
         if (row.reactions() != null && !row.reactions().isEmpty()) {
             builder.append("<div class=\"archive-reactions\">");
             for (String reaction : row.reactions()) {
-                builder.append("<span class=\"archive-reaction\">\n")
+                builder.append("<span class=\"archive-reaction\">")
                         .append(escapeHtml(normalize(reaction)))
                         .append("</span>\n");
             }

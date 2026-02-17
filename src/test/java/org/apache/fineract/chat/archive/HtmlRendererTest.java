@@ -32,12 +32,12 @@ class HtmlRendererTest {
         List<HtmlRenderer.Row> rows = List.of(
                 new HtmlRenderer.Row(false, "Thu 09:15", "Thu, 12 Feb 2026 09:15:00 GMT",
                         "alex", "Thread root with <a class=\"archive-link\" href=\"https://example.org\">link</a>",
-                        "https://slack.example/permalink", List.of("\uD83D\uDC4D 1")),
+                        "https://slack.example/permalink", List.of("👍 1")),
                 new HtmlRenderer.Row(true, "Thu 09:16", "Thu, 12 Feb 2026 09:16:00 GMT",
                         "sam", "_Okay_\n*Passed ?*\n~Maybe~\n- Check\n- LFG",
-                        "https://slack.example/permalink2", List.of("\uD83D\uDC4B 2")),
+                        "https://slack.example/permalink2", List.of("👋 2")),
                 new HtmlRenderer.Row(true, "Thu 09:18", "Thu, 12 Feb 2026 09:18:00 GMT",
-                        "jo", "Looks good \uD83D\uDC4D", "https://slack.example/permalink3",
+                        "jo", "Looks good 👍", "https://slack.example/permalink3",
                         List.of()));
 
         String page = HtmlRenderer.renderDailyPage("fineract", LocalDate.parse("2026-02-12"), rows);
@@ -56,6 +56,8 @@ class HtmlRendererTest {
         assertTrue(page.contains("<ul class=\"archive-list\">"));
         assertTrue(page.contains("<li>Check</li>"));
         assertTrue(page.contains("class=\"archive-reactions\""));
+        // intentionally left UTF-16BE "thumbs up" codepoint here to confirm we
+        // used the correct UTF-8 emoji glyph above
         assertTrue(page.contains("class=\"archive-reaction\">\uD83D\uDC4D 1</span>"));
         assertTrue(page.contains("href=\"../../../assets/chat-archive.css\""));
         assertFalse(page.contains("permalink:"));
