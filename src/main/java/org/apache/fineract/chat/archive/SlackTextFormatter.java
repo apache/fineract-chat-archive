@@ -34,9 +34,13 @@ final class SlackTextFormatter {
             Map.entry("+1", "👍"),
             Map.entry("thumbsdown", "👎"),
             Map.entry("-1", "👎"),
+            Map.entry("slightly_smiling_face", "🙂"),
             Map.entry("smile", "😄"),
             Map.entry("grin", "😁"),
+            Map.entry("wink", "😉"),
+            Map.entry("face_with_monocle", "🧐"),
             Map.entry("joy", "😂"),
+            Map.entry("sweat_smile", "😅"),
             Map.entry("sob", "😭"),
             Map.entry("heart", "♥️"),
             Map.entry("tada", "🎉"),
@@ -44,7 +48,11 @@ final class SlackTextFormatter {
             Map.entry("pray", "🙏"),
             Map.entry("fire", "🔥"),
             Map.entry("eyes", "👀"),
-            Map.entry("white_check_mark", "✅"));
+            Map.entry("white_check_mark", "✅"),
+            Map.entry("open_mouth", "😮"),
+            Map.entry("saluting_face", "🫡"),
+            Map.entry("dancer", "💃"),
+            Map.entry("raised_hands", "🙌"));
 
     private SlackTextFormatter() {}
 
