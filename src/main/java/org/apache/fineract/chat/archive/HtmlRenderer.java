@@ -43,7 +43,7 @@ final class HtmlRenderer {
         String safeDate = escapeHtml(date.toString());
 
         StringBuilder body = new StringBuilder();
-        body.append("<header class=\"archive-header\">")
+        body.append("<header class=\"archive-header\">\n")
                 .append("<p class=\"archive-breadcrumb\">")
                 .append("<a href=\"../../../\">Channels</a> / ")
                 .append("<a href=\"../\">#").append(safeChannel).append("</a> / ")
@@ -68,7 +68,7 @@ final class HtmlRenderer {
             body.append(renderMessageRow(row));
             int replyIndex = index + 1;
             if (replyIndex < rows.size() && rows.get(replyIndex).isReply()) {
-                body.append("<section class=\"archive-thread\" aria-label=\"Thread replies\">");
+                body.append("<section class=\"archive-thread\" aria-label=\"Thread replies\">\n");
                 while (replyIndex < rows.size() && rows.get(replyIndex).isReply()) {
                     body.append(renderMessageRow(rows.get(replyIndex)));
                     replyIndex++;
@@ -87,22 +87,22 @@ final class HtmlRenderer {
         String safeChannel = escapeHtml(normalize(channelName));
 
         StringBuilder body = new StringBuilder();
-        body.append("<header class=\"archive-header\">")
-                .append("<p class=\"archive-breadcrumb\">")
+        body.append("<header class=\"archive-header\">\n")
+                .append("<p class=\"archive-breadcrumb\">\n")
                 .append("<a href=\"../../\">Channels</a> / #").append(safeChannel)
-                .append("</p>")
-                .append("<h1>#").append(safeChannel).append("</h1>")
-                .append("</header>");
-        body.append("<section class=\"archive-index\">")
-                .append("<h2>Days</h2>")
-                .append("<ul class=\"archive-day-list\">");
+                .append("</p>\n")
+                .append("<h1>#").append(safeChannel).append("</h1>\n")
+                .append("</header>\n");
+        body.append("<section class=\"archive-index\">\n")
+                .append("<h2>Days</h2>\n")
+                .append("<ul class=\"archive-day-list\">\n");
         for (LocalDate date : dates) {
             String safeDate = escapeHtml(date.toString());
-            body.append("<li><a href=\"").append(safeDate).append("/\">")
+            body.append("<li><a href=\"").append(safeDate).append("/\">\n")
                     .append(safeDate)
-                    .append("</a></li>");
+                    .append("</a></li>\n");
         }
-        body.append("</ul>")
+        body.append("</ul>\n")
                 .append("</section>");
 
         return renderDocument("#" + normalize(channelName), CHANNEL_STYLESHEET_PATH,
@@ -111,21 +111,21 @@ final class HtmlRenderer {
 
     static String renderGlobalIndex(List<String> channels) {
         StringBuilder body = new StringBuilder();
-        body.append("<header class=\"archive-header\">")
-                .append("<h1>Chat Archive</h1>")
-                .append("</header>");
-        body.append("<section class=\"archive-index\">")
-                .append("<h2>Channels</h2>")
-                .append("<ul class=\"archive-channel-list\">");
+        body.append("<header class=\"archive-header\">\n")
+                .append("<h1>Chat Archive</h1>\n")
+                .append("</header>\n");
+        body.append("<section class=\"archive-index\">\n")
+                .append("<h2>Channels</h2>\n")
+                .append("<ul class=\"archive-channel-list\">\n");
         for (String channel : channels) {
             String safeChannel = escapeHtml(normalize(channel));
             body.append("<li><a href=\"daily/")
                     .append(safeChannel)
                     .append("/\">#")
                     .append(safeChannel)
-                    .append("</a></li>");
+                    .append("</a></li>\n");
         }
-        body.append("</ul>")
+        body.append("</ul>\n")
                 .append("</section>");
 
         return renderDocument("Chat Archive", ROOT_STYLESHEET_PATH, body.toString());
@@ -158,28 +158,28 @@ final class HtmlRenderer {
         if (row.isReply()) {
             builder.append(" archive-message-reply");
         }
-        builder.append("\">");
-        builder.append("<div class=\"archive-meta\">");
+        builder.append("\">\n");
+        builder.append("<div class=\"archive-meta\">\n");
         if (row.isReply()) {
-            builder.append("<span class=\"archive-reply-indicator\" aria-hidden=\"true\">&rarr;</span>");
-            builder.append("<span class=\"archive-reply-label\">reply</span>");
+            builder.append("<span class=\"archive-reply-indicator\" aria-hidden=\"true\">&rarr;</span>\n");
+            builder.append("<span class=\"archive-reply-label\">reply</span>\n");
         }
         builder.append(formatTimeCell(row));
-        builder.append("<span class=\"archive-user\">")
+        builder.append("<span class=\"archive-user\">\n")
                 .append(escapeHtml(normalize(row.user())))
-                .append("</span>");
-        builder.append("</div>");
-        builder.append("<div class=\"archive-text\">")
+                .append("</span>\n");
+        builder.append("</div>\n");
+        builder.append("<div class=\"archive-text\">\n")
                 .append(formatMessage(row.message()))
-                .append("</div>");
+                .append("</div>\n");
         if (row.reactions() != null && !row.reactions().isEmpty()) {
             builder.append("<div class=\"archive-reactions\">");
             for (String reaction : row.reactions()) {
-                builder.append("<span class=\"archive-reaction\">")
+                builder.append("<span class=\"archive-reaction\">\n")
                         .append(escapeHtml(normalize(reaction)))
-                        .append("</span>");
+                        .append("</span>\n");
             }
-            builder.append("</div>");
+            builder.append("</div>\n");
         }
         builder.append("</article>");
         return builder.toString();
@@ -203,14 +203,14 @@ final class HtmlRenderer {
                 listType = switchToList(builder, listType, ListType.UNORDERED);
                 builder.append("<li>")
                         .append(applyInlineMarkup(unorderedMatcher.group(1).trim()))
-                        .append("</li>");
+                        .append("</li>\n");
                 continue;
             }
             if (orderedMatcher.matches()) {
                 listType = switchToList(builder, listType, ListType.ORDERED);
                 builder.append("<li>")
                         .append(applyInlineMarkup(orderedMatcher.group(1).trim()))
-                        .append("</li>");
+                        .append("</li>\n");
                 continue;
             }
 
@@ -220,13 +220,13 @@ final class HtmlRenderer {
             }
 
             if (line.isBlank()) {
-                builder.append("<br>");
+                builder.append("<br>\n");
                 continue;
             }
 
-            builder.append("<span class=\"archive-line\">")
+            builder.append("<span class=\"archive-line\">\n")
                     .append(applyInlineMarkup(line))
-                    .append("</span>");
+                    .append("</span>\n");
             if (index < lines.length - 1) {
                 builder.append("<br>");
             }
@@ -279,18 +279,18 @@ final class HtmlRenderer {
             closeList(builder, current);
         }
         if (target == ListType.UNORDERED) {
-            builder.append("<ul class=\"archive-list\">");
+            builder.append("<ul class=\"archive-list\">\n");
         } else if (target == ListType.ORDERED) {
-            builder.append("<ol class=\"archive-list archive-list-numbered\">");
+            builder.append("<ol class=\"archive-list archive-list-numbered\">\n");
         }
         return target;
     }
 
     private static void closeList(StringBuilder builder, ListType type) {
         if (type == ListType.UNORDERED) {
-            builder.append("</ul>");
+            builder.append("</ul>\n");
         } else if (type == ListType.ORDERED) {
-            builder.append("</ol>");
+            builder.append("</ol>\n");
         }
     }
 
