@@ -40,7 +40,6 @@ class SiteMetadataRendererTest {
     @Test
     void robotsTxtOmitsSitemapWhenBaseUrlMissing() {
         String robots = SiteMetadataRenderer.renderRobotsTxt("");
-
         assertTrue(robots.contains("User-agent: *"));
         assertFalse(robots.contains("Sitemap:"));
     }
@@ -49,13 +48,10 @@ class SiteMetadataRendererTest {
     void sitemapIncludesIndexAndDailyPages() {
         Map<String, List<LocalDate>> dates = Map.of(
                 "fineract", List.of(LocalDate.parse("2026-02-06"), LocalDate.parse("2026-02-05")));
-
         String sitemap = SiteMetadataRenderer.renderSitemapXml("https://example.org/archive", dates);
-
         assertTrue(sitemap.contains("<loc>https://example.org/archive/</loc>"));
         assertTrue(sitemap.contains("<loc>https://example.org/archive/daily/fineract/</loc>"));
-        assertTrue(sitemap.contains("<loc>https://example.org/archive/daily/fineract/2026-02-06/</loc>"));
-        assertTrue(sitemap.contains("<loc>https://example.org/archive/daily/fineract/2026-02-05/</loc>"));
+        assertTrue(sitemap.contains("<loc>https://example.org/archive/daily/fineract/2026/02/06/</loc>"));
+        assertTrue(sitemap.contains("<loc>https://example.org/archive/daily/fineract/2026/02/05/</loc>"));
     }
-
 }

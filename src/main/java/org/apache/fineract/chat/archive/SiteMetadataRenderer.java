@@ -44,7 +44,8 @@ final class SiteMetadataRenderer {
             String channel = entry.getKey();
             paths.add("daily/" + channel + "/");
             for (LocalDate date : entry.getValue()) {
-                paths.add("daily/" + channel + "/" + date + "/");
+                String datePath = String.format("%d/%02d/%02d", date.getYear(), date.getMonthValue(), date.getDayOfMonth());
+                paths.add("daily/" + channel + "/" + datePath + "/");
             }
         }
 

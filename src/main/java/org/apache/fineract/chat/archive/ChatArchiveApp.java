@@ -164,8 +164,8 @@ public final class ChatArchiveApp {
                         config.slackToken(), slackApiClient, permalinkCache, userCache,
                         threadRepliesCache);
                 String page = HtmlRenderer.renderDailyPage(channel.name(), date, rows);
-                Path pagePath = dailyRoot.resolve(channel.name()).resolve(date.toString())
-                        .resolve("index.html");
+                String datePath = String.format("%d/%02d/%02d", date.getYear(), date.getMonthValue(), date.getDayOfMonth());
+                Path pagePath = dailyRoot.resolve(channel.name()).resolve(datePath).resolve("index.html");
                 try {
                     boolean changed = FileWriterUtil.writeIfChanged(pagePath, page);
                     anyRendered = anyRendered || changed;
@@ -478,26 +478,40 @@ public final class ChatArchiveApp {
         boolean changed = false;
         try {
             List<String> channels = IndexRenderer.listChannels(dailyRoot);
-            Map<String, List<LocalDate>> datesByChannel = new LinkedHashMap<>();
+            Map<String, List<LocalDate>> allDatesByChannel = new LinkedHashMap<>();
             for (String channel : channels) {
-                List<LocalDate> dates = IndexRenderer.listDates(dailyRoot.resolve(channel));
-                datesByChannel.put(channel, dates);
-                String index = HtmlRenderer.renderChannelIndex(channel, dates);
-                Path indexPath = dailyRoot.resolve(channel).resolve("index.html");
-                changed = FileWriterUtil.writeIfChanged(indexPath, index) || changed;
+                Path channelPath = dailyRoot.resolve(channel);
+                List<LocalDate> dates = IndexRenderer.listDates(channelPath);
+                allDatesByChannel.put(channel, dates);
+                List<Integer> years = dates.stream().map(LocalDate::getYear).distinct().sorted().toList();
+                String channelIndex = HtmlRenderer.renderChannelIndex(channel, years);
+                changed = FileWriterUtil.writeIfChanged(channelPath.resolve("index.html"), channelIndex) || changed;
+                Map<Integer, Set<Integer>> yearMonthMap = new TreeMap<>();
+                for (LocalDate date : dates) {
+                    yearMonthMap.computeIfAbsent(date.getYear(), k -> new TreeSet<>()).add(date.getMonthValue());
+                }
+                for (Integer year : yearMonthMap.keySet()) {
+                    Path yearPath = channelPath.resolve(String.valueOf(year));
+                    List<Integer> months = yearMonthMap.get(year).stream().sorted().toList();
+                    String yearIndex = HtmlRenderer.renderYearIndex(channel, year, months);
+                    changed = FileWriterUtil.writeIfChanged(yearPath.resolve("index.html"), yearIndex) || changed;
+                    for (Integer month : months) {
+                        Path monthPath = yearPath.resolve(String.format("%02d", month));
+                        List<LocalDate> monthDates = dates.stream()
+                                .filter(d -> d.getYear() == year && d.getMonthValue() == month)
+                                .sorted().toList();
+                        String monthIndex = HtmlRenderer.renderMonthIndex(channel, year, month, monthDates);
+                        changed = FileWriterUtil.writeIfChanged(monthPath.resolve("index.html"), monthIndex) || changed;
+                    }
+                }
             }
             String globalIndex = HtmlRenderer.renderGlobalIndex(channels);
-            Path globalPath = dailyRoot.getParent().resolve("index.html");
-            changed = FileWriterUtil.writeIfChanged(globalPath, globalIndex) || changed;
-
+            changed = FileWriterUtil.writeIfChanged(dailyRoot.getParent().resolve("index.html"), globalIndex) || changed;
             String robotsTxt = SiteMetadataRenderer.renderRobotsTxt(siteBaseUrl);
-            Path robotsPath = dailyRoot.getParent().resolve("robots.txt");
-            changed = FileWriterUtil.writeIfChanged(robotsPath, robotsTxt) || changed;
-
+            changed = FileWriterUtil.writeIfChanged(dailyRoot.getParent().resolve("robots.txt"), robotsTxt) || changed;
             if (!siteBaseUrl.isBlank()) {
-                String sitemap = SiteMetadataRenderer.renderSitemapXml(siteBaseUrl, datesByChannel);
-                Path sitemapPath = dailyRoot.getParent().resolve("sitemap.xml");
-                changed = FileWriterUtil.writeIfChanged(sitemapPath, sitemap) || changed;
+                String sitemap = SiteMetadataRenderer.renderSitemapXml(siteBaseUrl, allDatesByChannel);
+                changed = FileWriterUtil.writeIfChanged(dailyRoot.getParent().resolve("sitemap.xml"), sitemap) || changed;
             }
         } catch (IOException ex) {
             LOG.log(Level.WARNING, "Failed to write index files.", ex);

@@ -27,7 +27,7 @@ final class HtmlRenderer {
 
     private static final String ROOT_STYLESHEET_PATH = "assets/chat-archive.css";
     private static final String CHANNEL_STYLESHEET_PATH = "../../assets/chat-archive.css";
-    private static final String DAILY_STYLESHEET_PATH = "../../../assets/chat-archive.css";
+    private static final String DAILY_STYLESHEET_PATH = "../../../../../assets/chat-archive.css";
     private static final Pattern UNORDERED_LIST_PATTERN = Pattern.compile("^\\s*(?:[-*]|\\u2022)\\s+(.+)$");
     private static final Pattern ORDERED_LIST_PATTERN = Pattern.compile("^\\s*\\d+\\.\\s+(.+)$");
     private static final Pattern ANCHOR_PATTERN = Pattern.compile("(<a\\b[^>]*>.*?</a>)",
@@ -40,17 +40,18 @@ final class HtmlRenderer {
 
     static String renderDailyPage(String channelName, LocalDate date, List<Row> rows) {
         String safeChannel = escapeHtml(normalize(channelName));
-        String safeDate = escapeHtml(date.toString());
+        String displayDate = escapeHtml(date.toString());
 
         StringBuilder body = new StringBuilder();
         body.append("<header class=\"archive-header\">\n")
                 .append("<p class=\"archive-breadcrumb\">")
-                .append("<a href=\"../../../\">Channels</a> / ")
-                .append("<a href=\"../\">#").append(safeChannel).append("</a> / ")
-                .append(safeDate)
+                .append("<a href=\"../../../../../\">Channels</a> / ")
+                .append("<a href=\"../../../\">#").append(safeChannel).append("</a> / ")
+                .append(displayDate)
                 .append("</p>")
-                .append("<h1>#").append(safeChannel).append(" ").append(safeDate).append("</h1>")
+                .append("<h1>#").append(safeChannel).append(" ").append(displayDate).append("</h1>")
                 .append("</header>");
+
         body.append("<section class=\"archive-log\">");
         for (int index = 0; index < rows.size(); index++) {
             Row row = rows.get(index);
@@ -83,23 +84,21 @@ final class HtmlRenderer {
                 DAILY_STYLESHEET_PATH, body.toString());
     }
 
-    static String renderChannelIndex(String channelName, List<LocalDate> dates) {
+    static String renderChannelIndex(String channelName, List<Integer> years) {
         String safeChannel = escapeHtml(normalize(channelName));
-
         StringBuilder body = new StringBuilder();
         body.append("<header class=\"archive-header\">\n")
                 .append("<p class=\"archive-breadcrumb\">\n")
                 .append("<a href=\"../../\">Channels</a> / #").append(safeChannel)
                 .append("</p>\n")
-                .append("<h1>#").append(safeChannel).append("</h1>\n")
+                .append("<h1>#").append(safeChannel).append(" Archive</h1>\n")
                 .append("</header>\n");
         body.append("<section class=\"archive-index\">\n")
-                .append("<h2>Days</h2>\n")
-                .append("<ul class=\"archive-day-list\">\n");
-        for (LocalDate date : dates) {
-            String safeDate = escapeHtml(date.toString());
-            body.append("<li><a href=\"").append(safeDate).append("/\">\n")
-                    .append(safeDate)
+                .append("<h2>Years</h2>\n")
+                .append("<ul class=\"archive-year-list\">\n");
+        for (Integer year : years) {
+            body.append("<li><a href=\"").append(year).append("/\">\n")
+                    .append(year)
                     .append("</a></li>\n");
         }
         body.append("</ul>\n")
@@ -107,6 +106,58 @@ final class HtmlRenderer {
 
         return renderDocument("#" + normalize(channelName), CHANNEL_STYLESHEET_PATH,
                 body.toString());
+    }
+
+    static String renderYearIndex(String channelName, int year, List<Integer> months) {
+        String safeChannel = escapeHtml(normalize(channelName));
+        String yearStr = String.valueOf(year);
+        StringBuilder body = new StringBuilder();
+        body.append("<header class=\"archive-header\">\n")
+                .append("<p class=\"archive-breadcrumb\">\n")
+                .append("<a href=\"../../../\">Channels</a> / ")
+                .append("<a href=\"../\">#").append(safeChannel).append("</a> / ")
+                .append(yearStr)
+                .append("</p>\n")
+                .append("<h1>#").append(safeChannel).append(" - ").append(yearStr).append("</h1>\n")
+                .append("</header>\n");
+        body.append("<section class=\"archive-index\">\n")
+                .append("<h2>Months</h2>\n")
+                .append("<ul class=\"archive-month-list\">\n");
+        for (Integer month : months) {
+            body.append("<li><a href=\"").append(String.format("%02d", month)).append("/\">\n")
+                    .append(java.time.Month.of(month).name())
+                    .append("</a></li>\n");
+        }
+        body.append("</ul>\n")
+                .append("</section>");
+        return renderDocument("#" + safeChannel + " " + yearStr, "../../../assets/chat-archive.css", body.toString());
+    }
+
+    static String renderMonthIndex(String channelName, int year, int month, List<LocalDate> dates) {
+        String safeChannel = escapeHtml(normalize(channelName));
+        String monthName = java.time.Month.of(month).name();
+        StringBuilder body = new StringBuilder();
+        body.append("<header class=\"archive-header\">\n")
+                .append("<p class=\"archive-breadcrumb\">\n")
+                .append("<a href=\"../../../../\">Channels</a> / ")
+                .append("<a href=\"../../\">#").append(safeChannel).append("</a> / ")
+                .append("<a href=\"../\">").append(year).append("</a> / ")
+                .append(monthName)
+                .append("</p>\n")
+                .append("<h1>#").append(safeChannel).append(" - ").append(monthName).append(" ").append(year).append("</h1>\n")
+                .append("</header>\n");
+        body.append("<section class=\"archive-index\">\n")
+                .append("<h2>Days</h2>\n")
+                .append("<ul class=\"archive-day-list\">\n");
+        for (LocalDate date : dates) {
+            String dayStr = String.format("%02d", date.getDayOfMonth());
+            body.append("<li><a href=\"").append(dayStr).append("/\">\n")
+                    .append(date.toString())
+                    .append("</a></li>\n");
+        }
+        body.append("</ul>\n")
+                .append("</section>");
+        return renderDocument("#" + safeChannel + " " + monthName, "../../../../assets/chat-archive.css", body.toString());
     }
 
     static String renderGlobalIndex(List<String> channels) {

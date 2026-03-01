@@ -56,23 +56,26 @@ class HtmlRendererTest {
         assertTrue(page.contains("<ul class=\"archive-list\">"));
         assertTrue(page.contains("<li>Check</li>"));
         assertTrue(page.contains("class=\"archive-reactions\""));
-        // intentionally left UTF-16BE "thumbs up" codepoint here to confirm we
-        // used the correct UTF-8 emoji glyph above
         assertTrue(page.contains("class=\"archive-reaction\">\uD83D\uDC4D 1</span>"));
-        assertTrue(page.contains("href=\"../../../assets/chat-archive.css\""));
+        assertTrue(page.contains("href=\"../../../../../assets/chat-archive.css\""));
         assertFalse(page.contains("permalink:"));
         assertFalse(page.contains("---"));
     }
 
     @Test
     void indexesUseExtensionlessLinks() {
-        String channel = HtmlRenderer.renderChannelIndex("fineract",
+        String channel = HtmlRenderer.renderChannelIndex("fineract", List.of(2026));
+        String yearPage = HtmlRenderer.renderYearIndex("fineract", 2026, List.of(2));
+        String monthPage = HtmlRenderer.renderMonthIndex("fineract", 2026, 2,
                 List.of(LocalDate.parse("2026-02-12")));
         String global = HtmlRenderer.renderGlobalIndex(List.of("fineract"));
-
-        assertTrue(channel.contains("href=\"2026-02-12/\""));
-        assertTrue(global.contains("href=\"daily/fineract/\""));
+        assertTrue(channel.contains("href=\"2026/\""));
         assertTrue(channel.contains("href=\"../../assets/chat-archive.css\""));
+        assertTrue(yearPage.contains("href=\"02/\""));
+        assertTrue(yearPage.contains("href=\"../../../assets/chat-archive.css\""));
+        assertTrue(monthPage.contains("href=\"12/\""));
+        assertTrue(monthPage.contains("href=\"../../../../assets/chat-archive.css\""));
+        assertTrue(global.contains("href=\"daily/fineract/\""));
         assertTrue(global.contains("href=\"assets/chat-archive.css\""));
         assertFalse(channel.contains(".md"));
         assertFalse(global.contains(".md"));
