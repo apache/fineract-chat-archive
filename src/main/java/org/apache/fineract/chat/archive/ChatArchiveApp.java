@@ -164,8 +164,16 @@ public final class ChatArchiveApp {
                         config.slackToken(), slackApiClient, permalinkCache, userCache,
                         threadRepliesCache);
                 String page = HtmlRenderer.renderDailyPage(channel.name(), date, rows);
-                Path pagePath = dailyRoot.resolve(channel.name()).resolve(date.toString())
-                        .resolve("index.html");
+                String year = String.valueOf(date.getYear());
+String month = String.format("%02d", date.getMonthValue());
+String day = String.format("%02d", date.getDayOfMonth());
+
+Path pagePath = dailyRoot
+        .resolve(channel.name())
+        .resolve(year)
+        .resolve(month)
+        .resolve(day)
+        .resolve("index.html");
                 try {
                     boolean changed = FileWriterUtil.writeIfChanged(pagePath, page);
                     anyRendered = anyRendered || changed;
