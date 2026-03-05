@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.Objects;
 
 final class IndexRenderer {
 
@@ -47,16 +48,27 @@ final class IndexRenderer {
         if (!Files.exists(channelDir)) {
             return List.of();
         }
-        try (Stream<Path> stream = Files.list(channelDir)) {
-            return stream.filter(Files::isDirectory)
-                    .map(path -> path.getFileName().toString())
-                    .map(IndexRenderer::parseDate)
-                    .filter(date -> date != null)
+        try (Stream<Path> stream = Files.walk(channelDir, 3)) {
+            return stream
+                    .filter(path -> {
+                        return path.getNameCount() - channelDir.getNameCount() == 3;
+                    })
+                    .map(path -> {
+                        try {
+                            int day = Integer.parseInt(path.getFileName().toString());
+                            int month = Integer.parseInt(path.getParent().getFileName().toString());
+                            int year = Integer.parseInt(path.getParent().getParent().getFileName().toString());
+                            return LocalDate.of(year, month, day);
+                        } catch (Exception e) {
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .distinct()
                     .sorted(Comparator.reverseOrder())
-                    .collect(Collectors.toList());
+                    .toList();
         }
     }
-
     private static LocalDate parseDate(String value) {
         try {
             return LocalDate.parse(value);
