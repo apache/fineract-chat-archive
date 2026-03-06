@@ -258,14 +258,15 @@ public final class ChatArchiveApp {
         return grouped;
     }
 
-    private static List<HtmlRenderer.Row> toRows(List<SlackMessage> messages, String channelId,
-            String token, SlackApiClient slackApiClient, Map<String, String> permalinkCache,
-            Map<String, String> userCache, Map<String, List<SlackMessage>> threadRepliesCache) {
+    private static List<HtmlRenderer.Row> toRows(List<SlackMessage> messages, String channelId, String token, SlackApiClient slackApiClient, Map<String, String> permalinkCache, Map<String, String> userCache, Map<String, List<SlackMessage>> threadRepliesCache) {
         List<HtmlRenderer.Row> rows = new ArrayList<>();
+        Set<String> processedTs = new HashSet<>();
+
         Map<String, List<SlackMessage>> repliesByParent = collectReplies(messages);
         Set<String> parentSet = collectParentIds(messages);
+
         for (SlackMessage message : messages) {
-            if (message.ts() == null) {
+            if (message.ts() == null || processedTs.contains(message.ts())) {
                 continue;
             }
             if (isReply(message)) {
@@ -273,15 +274,19 @@ public final class ChatArchiveApp {
                     continue;
                 }
                 rows.add(toRow(message, channelId, token, slackApiClient, permalinkCache, userCache));
+                processedTs.add(message.ts());
                 continue;
             }
             rows.add(toRow(message, channelId, token, slackApiClient, permalinkCache, userCache));
+            processedTs.add(message.ts());
             if (message.threadTs() != null && message.threadTs().equals(message.ts())) {
                 List<SlackMessage> replies = resolveThreadReplies(channelId, message.threadTs(),
                         repliesByParent, threadRepliesCache, slackApiClient, token);
                 for (SlackMessage reply : replies) {
-                    rows.add(toRow(reply, channelId, token, slackApiClient, permalinkCache,
-                            userCache));
+                    if (reply.ts() != null && processedTs.add(reply.ts())) {
+                        rows.add(toRow(reply, channelId, token, slackApiClient, permalinkCache,
+                                userCache));
+                    }
                 }
             }
         }
