@@ -47,9 +47,11 @@ final class HtmlRenderer {
                 .append("<p class=\"archive-breadcrumb\">")
                 .append("<a href=\"../../../../../\">Channels</a> / ")
                 .append("<a href=\"../../../\">#").append(safeChannel).append("</a> / ")
-                .append(displayDate)
+                .append("<a href=\"../../\">").append(date.getYear()).append("</a> / ")
+                .append("<a href=\"../\">").append(String.format("%02d", date.getMonthValue())).append("</a> / ")
+                .append(String.format("%02d", date.getDayOfMonth()))
                 .append("</p>")
-                .append("<h1>#").append(safeChannel).append(" ").append(displayDate).append("</h1>")
+                .append("<h1>#").append(safeChannel).append(" ").append(date.getYear()).append("-").append(String.format("%02d", date.getMonthValue())).append("-").append(String.format("%02d", date.getDayOfMonth())).append("</h1>")
                 .append("</header>");
 
         body.append("<section class=\"archive-log\">");
@@ -124,8 +126,9 @@ final class HtmlRenderer {
                 .append("<h2>Months</h2>\n")
                 .append("<ul class=\"archive-month-list\">\n");
         for (Integer month : months) {
-            body.append("<li><a href=\"").append(String.format("%02d", month)).append("/\">\n")
-                    .append(java.time.Month.of(month).name())
+            String monthNum = String.format("%02d", month);
+            body.append("<li><a href=\"").append(monthNum).append("/\">\n")
+                    .append(monthNum)
                     .append("</a></li>\n");
         }
         body.append("</ul>\n")
@@ -135,16 +138,16 @@ final class HtmlRenderer {
 
     static String renderMonthIndex(String channelName, int year, int month, List<LocalDate> dates) {
         String safeChannel = escapeHtml(normalize(channelName));
-        String monthName = java.time.Month.of(month).name();
+        String monthNum = String.format("%02d", month);
         StringBuilder body = new StringBuilder();
         body.append("<header class=\"archive-header\">\n")
                 .append("<p class=\"archive-breadcrumb\">\n")
                 .append("<a href=\"../../../../\">Channels</a> / ")
                 .append("<a href=\"../../\">#").append(safeChannel).append("</a> / ")
                 .append("<a href=\"../\">").append(year).append("</a> / ")
-                .append(monthName)
+                .append(monthNum) // Use number here
                 .append("</p>\n")
-                .append("<h1>#").append(safeChannel).append(" - ").append(monthName).append(" ").append(year).append("</h1>\n")
+                .append("<h1>#").append(safeChannel).append(" - ").append(monthNum).append(" ").append(year).append("</h1>\n")
                 .append("</header>\n");
         body.append("<section class=\"archive-index\">\n")
                 .append("<h2>Days</h2>\n")
@@ -157,7 +160,7 @@ final class HtmlRenderer {
         }
         body.append("</ul>\n")
                 .append("</section>");
-        return renderDocument("#" + safeChannel + " " + monthName, "../../../../assets/chat-archive.css", body.toString());
+        return renderDocument("#" + safeChannel + " " + monthNum, "../../../../assets/chat-archive.css", body.toString());
     }
 
     static String renderGlobalIndex(List<String> channels) {

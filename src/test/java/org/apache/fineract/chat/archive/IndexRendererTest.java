@@ -47,13 +47,13 @@ class IndexRendererTest {
     @Test
     void listDatesUsesDateDirectoriesInDescendingOrder() throws IOException {
         Path channelDir = tempDir.resolve("daily").resolve("fineract");
-        Files.createDirectories(channelDir.resolve("2026-02-05"));
-        Files.createDirectories(channelDir.resolve("2026-02-12"));
+        Files.createDirectories(channelDir.resolve("2026/02/05"));
+        Files.writeString(channelDir.resolve("2026/02/05/index.html"), "test content");
+        Files.createDirectories(channelDir.resolve("2026/02/12"));
+        Files.writeString(channelDir.resolve("2026/02/12/index.html"), "test content");
         Files.createDirectories(channelDir.resolve("not-a-date"));
         Files.writeString(channelDir.resolve("README.txt"), "ignore");
-
         List<LocalDate> dates = IndexRenderer.listDates(channelDir);
-
         assertEquals(List.of(LocalDate.parse("2026-02-12"), LocalDate.parse("2026-02-05")),
                 dates);
     }
