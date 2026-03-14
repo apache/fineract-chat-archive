@@ -18,14 +18,18 @@
  */
 package org.apache.fineract.chat.archive;
 
-import java.time.temporal.ChronoUnit;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -152,14 +156,13 @@ public final class ChatArchiveApp {
                 continue;
             }
 
-            List<SlackMessage> messages = new ArrayList<>(historyResponse.messages());
-            messages.sort((left, right) -> SlackTimestamp.compare(left.ts(), right.ts()));
-            String latestTs = updateCursor(cursors.get(channelId), messages);
+            List<SlackMessage> fetchedMessages = new ArrayList<>(historyResponse.messages());
+            List<SlackMessage> fullHistory = syncWithHistory(channel.name(), fetchedMessages, config.outputDir());
+            String latestTs = updateCursor(cursors.get(channelId), fetchedMessages);
             if (latestTs != null) {
                 cursors.put(channelId, latestTs);
             }
-
-            Map<LocalDate, List<SlackMessage>> grouped = groupByDate(messages);
+            Map<LocalDate, List<SlackMessage>> grouped = groupByDate(fullHistory);
             for (Map.Entry<LocalDate, List<SlackMessage>> entry : grouped.entrySet()) {
                 LocalDate date = entry.getKey();
                 List<HtmlRenderer.Row> rows = toRows(entry.getValue(), channelId,
@@ -524,6 +527,31 @@ public final class ChatArchiveApp {
             LOG.log(Level.WARNING, "Failed to write index files.", ex);
         }
         return changed;
+    }
+    private static List<SlackMessage> syncWithHistory(String channelName, List<SlackMessage> newMessages, Path outputDir) {
+        Path historyPath = outputDir.resolve("state").resolve(channelName + "_history.json");
+        ObjectMapper mapper = new ObjectMapper()
+                .enable(SerializationFeature.INDENT_OUTPUT);
+        Map<String, SlackMessage> historyMap = new TreeMap<>();
+        try {
+            if (Files.exists(historyPath)) {
+                List<SlackMessage> existing = mapper.readValue(
+                        historyPath.toFile(),
+                        new TypeReference<List<SlackMessage>>() {}
+                );
+                for (SlackMessage m : existing) {
+                    if (m.ts() != null) historyMap.put(m.ts(), m);
+                }
+            }
+            for (SlackMessage m : newMessages) {
+                if (m.ts() != null) historyMap.put(m.ts(), m);
+            }
+            Files.createDirectories(historyPath.getParent());
+            mapper.writeValue(historyPath.toFile(), new ArrayList<>(historyMap.values()));
+        } catch (IOException e) {
+            LOG.log(Level.WARNING, "Could not sync history for " + channelName, e);
+        }
+        return new ArrayList<>(historyMap.values());
     }
 }
 
