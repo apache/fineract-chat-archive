@@ -32,6 +32,7 @@ final class SlackTextFormatter {
             Map.entry("wave", "👋"),
             Map.entry("thumbsup", "👍"),
             Map.entry("+1", "👍"),
+            Map.entry("ok_hand", "👌"),
             Map.entry("thumbsdown", "👎"),
             Map.entry("-1", "👎"),
             Map.entry("slightly_smiling_face", "🙂"),
@@ -49,8 +50,10 @@ final class SlackTextFormatter {
             Map.entry("fire", "🔥"),
             Map.entry("eyes", "👀"),
             Map.entry("white_check_mark", "✅"),
+            Map.entry("ship", "🚢"),
             Map.entry("open_mouth", "😮"),
             Map.entry("saluting_face", "🫡"),
+            Map.entry("face_palm", "🤦"),
             Map.entry("dancer", "💃"),
             Map.entry("raised_hands", "🙌"));
 
