@@ -37,6 +37,7 @@ final class SlackTextFormatter {
             Map.entry("-1", "👎"),
             Map.entry("slightly_smiling_face", "🙂"),
             Map.entry("smile", "😄"),
+            Map.entry("star-struck", "🤩"),
             Map.entry("grin", "😁"),
             Map.entry("wink", "😉"),
             Map.entry("face_with_monocle", "🧐"),
