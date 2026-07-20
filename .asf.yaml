@@ -1,9 +1,15 @@
-github:
-  description: "Slack Chat Archiver"
+project:
+  metadata:
+    key: fineract-chat-archive
+    committee: fineract
+    name: Slack Chat Archiver
 notifications:
   commits: commits@fineract.apache.org
   pullrequests: issues@fineract.apache.org
 github:
+  description: 💾 Archive Slack messages into a static website.
+  features:
+    issues: true
   enabled_merge_buttons:
     merge: true
     squash: false
