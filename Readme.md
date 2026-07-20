@@ -100,6 +100,8 @@ See `CONTRIBUTING.md` for branch/PR workflow and validation checklist.
 
 The [original intent](https://issues.apache.org/jira/browse/FINERACT-2171) of this code was to [archive every public Fineract chat message](https://lists.apache.org/thread/9x6rftxoc4kdwp754odqvktdq2cz106h) into a public, index-able, simple/static HTML website.
 
+The chat room [moved](https://issues.apache.org/jira/browse/FINERACT-2660) to [Matrix](https://matrix.to/#/%23apache-fineract-dev:matrix.org) in June of 2026, so this archive is less critical. The Slack channel is now used for Mifos+Fineract integration discussions.
+
 ## Copyright and License
 
 See `LICENSE` and `NOTICE`.
