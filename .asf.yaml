@@ -1,4 +1,6 @@
 github:
+  features:
+    issues: true
   description: "Slack Chat Archiver"
 notifications:
   commits: commits@fineract.apache.org
