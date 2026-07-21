@@ -6,6 +6,7 @@ project:
 notifications:
   commits: commits@fineract.apache.org
   pullrequests: issues@fineract.apache.org
+  issues: issues@fineract.apache.org
 github:
   description: 💾 Archive Slack messages into a static website.
   features:
